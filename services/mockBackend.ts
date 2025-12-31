@@ -149,6 +149,30 @@ class BackendService {
             if (doc.exists()) this.pricing = doc.data() as PricingConfig;
             this.notifyListeners();
         }));
+
+        // Sync Thresholds
+        this.unsubscribes.push(onSnapshot(doc(db, 'settings', 'thresholds'), (doc) => {
+            if (doc.exists()) this.thresholds = doc.data() as PricingThresholds;
+            this.notifyListeners();
+        }));
+
+        // Sync Support Settings
+        this.unsubscribes.push(onSnapshot(doc(db, 'settings', 'support'), (doc) => {
+            if (doc.exists()) this.supportSettings = doc.data() as SupportSettings;
+            this.notifyListeners();
+        }));
+
+        // Sync Badge Settings
+        this.unsubscribes.push(onSnapshot(doc(db, 'settings', 'badges'), (doc) => {
+            if (doc.exists()) this.badgeSettings = doc.data() as AdminBadgeSettings;
+            this.notifyListeners();
+        }));
+        
+        // Sync Integrations
+        this.unsubscribes.push(onSnapshot(doc(db, 'settings', 'integrations'), (doc) => {
+            if (doc.exists()) this.integrations = doc.data() as IntegrationsConfig;
+            this.notifyListeners();
+        }));
     }
 
     subscribe(listener: () => void) {
@@ -508,12 +532,53 @@ class BackendService {
         return `${window.location.origin}/payment-success?jobId=${jobId}`;
     }
     async getAuditLogs() { return this.auditLogs; }
-    async getAdminBadgeSettings() { return { showTripsBadge:true, showRequestBadge:true, showUpcomingBadge:true, showCompleteBadge:false }; }
-    async updateAdminBadgeSettings(s: AdminBadgeSettings) {}
-    async updatePricingThresholds(t: PricingThresholds) {}
-    async getPricingThresholds() { return {} as PricingThresholds; }
-    async updateSupportSettings(s: SupportSettings) {}
-    async getSupportSettings() { return {} as SupportSettings; }
+    async getAdminBadgeSettings() { 
+        if (!this.badgeSettings) {
+             const docRef = await getDoc(doc(db, 'settings', 'badges'));
+             if (docRef.exists()) {
+                 this.badgeSettings = docRef.data() as AdminBadgeSettings;
+             } else {
+                 this.badgeSettings = { showTripsBadge:true, showRequestBadge:true, showUpcomingBadge:true, showCompleteBadge:false };
+             }
+        }
+        return this.badgeSettings;
+    }
+    async updateAdminBadgeSettings(s: AdminBadgeSettings) {
+        this.badgeSettings = s;
+        await setDoc(doc(db, 'settings', 'badges'), s);
+    }
+
+    async updatePricingThresholds(t: PricingThresholds) {
+        this.thresholds = t;
+        await setDoc(doc(db, 'settings', 'thresholds'), t);
+    }
+    async getPricingThresholds() { 
+        if (!this.thresholds) {
+            const docRef = await getDoc(doc(db, 'settings', 'thresholds'));
+            if (docRef.exists()) {
+                this.thresholds = docRef.data() as PricingThresholds;
+            } else {
+                this.thresholds = { highAlertPercent: 50, lowAlertPercent: 50, fairOfferPercent: 35, goodOfferPercent: 10 };
+            }
+        }
+        return this.thresholds;
+    }
+
+    async updateSupportSettings(s: SupportSettings) {
+        this.supportSettings = s;
+        await setDoc(doc(db, 'settings', 'support'), s);
+    }
+    async getSupportSettings() { 
+        if (!this.supportSettings) {
+            const docRef = await getDoc(doc(db, 'settings', 'support'));
+            if (docRef.exists()) {
+                this.supportSettings = docRef.data() as SupportSettings;
+            } else {
+                this.supportSettings = { financeEmail: '', supportEmail: '', supportPhone: '', whatsappNumber: '' };
+            }
+        }
+        return this.supportSettings;
+    }
     async getTransactions() { return this.transactions; }
     async getNotifications() { return this.notifications; }
     async getPromoCodes() { return this.promoCodes; }
