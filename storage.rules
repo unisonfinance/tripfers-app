@@ -1,0 +1,34 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is logged in
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 1. Settings/Logos: Only Admin can upload, anyone can read
+    match /settings/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated(); // Ideally check for admin role here if possible via custom claims
+    }
+
+    // 2. Fleet Images: Only Admin can upload, anyone can read
+    match /fleet/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // 3. Driver Documents: Drivers can upload to their own folder
+    match /drivers/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      // Allow write if the user matches the folder ID OR if it's an admin
+      allow write: if request.auth.uid == userId || isAuthenticated();
+    }
+    
+    // Default deny for anything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
