@@ -532,7 +532,7 @@ class BackendService {
     async adminOverridePrice(jobId: string, price: number) { await updateDoc(doc(db, 'bookings', jobId), { price }); }
     async updateTicketStatus(id: string, status: any) {}
     async sendSystemNotification(n: any) {}
-    async initiateStripeCheckout(uid: string) { return ''; }
+    // async initiateStripeCheckout(uid: string) { return ''; } // Removed duplicate
     async confirmMembership(uid: string, sess: string) { return {success: true}; }
     async getDriverPublicProfile(id: string) { return this.users.find(u => u.id === id); }
     calculatePrice(dist: number, type: string) { return 100; } // Fallback
