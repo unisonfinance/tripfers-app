@@ -303,24 +303,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                             </div>
                          </div>
 
-                         {isSignUp && (
-                            <div className="space-y-1 animate-fade-in">
-                                <label className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1">{t('confirm_password')}</label>
-                                <div className="relative group">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-600 transition-colors">
-                                        <Icons.Lock className="w-5 h-5" />
-                                    </div>
-                                    <input 
-                                        type={showPassword ? "text" : "password"}
-                                        required
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-10 pr-10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm font-medium font-sans"
-                                        value={confirmPassword}
-                                        onChange={e => setConfirmPassword(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                         )}
-
                          <button type="submit" disabled={loading} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-red-600/20 transition-all mt-4 uppercase tracking-wide text-xs transform active:scale-[0.98]">
                             {loading ? t('processing') : (isSignUp ? t('sign_up') : t('sign_in'))}
                          </button>
