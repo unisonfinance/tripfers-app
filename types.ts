@@ -376,4 +376,8 @@ export interface BrandingSettings {
   mainFaviconUrl: string;
   adminFaviconUrl: string;
   loginFormImageUrl: string;
+  mainSiteLogoUrl?: string;
+  logoMarginLeft?: number;
+  logoMarginTop?: number;
+  logoMarginBottom?: number;
 }

@@ -499,7 +499,11 @@ const SettingsView = ({
     const [localBranding, setLocalBranding] = useState<BrandingSettings>({
         mainFaviconUrl: brandingSettings?.mainFaviconUrl || '',
         adminFaviconUrl: brandingSettings?.adminFaviconUrl || '',
-        loginFormImageUrl: brandingSettings?.loginFormImageUrl || ''
+        loginFormImageUrl: brandingSettings?.loginFormImageUrl || '',
+        mainSiteLogoUrl: brandingSettings?.mainSiteLogoUrl || '',
+        logoMarginLeft: brandingSettings?.logoMarginLeft || 0,
+        logoMarginTop: brandingSettings?.logoMarginTop || 0,
+        logoMarginBottom: brandingSettings?.logoMarginBottom || 0
     });
     const [showSaved, setShowSaved] = useState(false);
 
@@ -589,6 +593,53 @@ const SettingsView = ({
                                 />
                             </div>
                             <p className="text-[10px] text-slate-400 mt-1">Image to display at the top of the Login/Register form.</p>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Main Site Logo URL</label>
+                            <div className="flex gap-2 items-center">
+                                {localBranding.mainSiteLogoUrl && (
+                                    <img src={localBranding.mainSiteLogoUrl} alt="Preview" className="w-auto h-9 p-1 bg-white rounded border border-slate-200 object-contain" />
+                                )}
+                                <input 
+                                    type="text" 
+                                    value={localBranding.mainSiteLogoUrl || ''}
+                                    onChange={e => setLocalBranding({...localBranding, mainSiteLogoUrl: e.target.value})}
+                                    className="flex-1 p-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-blue-500 dark:text-white"
+                                    placeholder="https://example.com/site-logo.png"
+                                />
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-1">Replaces "TripFers" text in the header.</p>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Logo Left Margin (px)</label>
+                                <input 
+                                    type="number" 
+                                    value={localBranding.logoMarginLeft || 0}
+                                    onChange={e => setLocalBranding({...localBranding, logoMarginLeft: parseInt(e.target.value) || 0})}
+                                    className="w-full p-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-blue-500 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Logo Top Margin (px)</label>
+                                <input 
+                                    type="number" 
+                                    value={localBranding.logoMarginTop || 0}
+                                    onChange={e => setLocalBranding({...localBranding, logoMarginTop: parseInt(e.target.value) || 0})}
+                                    className="w-full p-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-blue-500 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Logo Bottom Margin (px)</label>
+                                <input 
+                                    type="number" 
+                                    value={localBranding.logoMarginBottom || 0}
+                                    onChange={e => setLocalBranding({...localBranding, logoMarginBottom: parseInt(e.target.value) || 0})}
+                                    className="w-full p-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-blue-500 dark:text-white"
+                                />
+                            </div>
                         </div>
 
                         <div className="flex justify-start pt-2 items-center gap-4 relative">

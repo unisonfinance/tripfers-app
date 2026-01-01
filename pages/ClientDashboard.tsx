@@ -299,6 +299,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
   const [routeError, setRouteError] = useState<string | null>(null);
   const [pricingConfig, setPricingConfig] = useState<any>(null);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | undefined>(undefined);
+  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -309,6 +310,43 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
     }
     backend.getPricingConfig().then(setPricingConfig);
   }, []);
+
+  // Google Maps API Loader Check
+  useEffect(() => {
+    if (window.google?.maps) {
+        setIsGoogleLoaded(true);
+    } else {
+        const interval = setInterval(() => {
+            if (window.google?.maps) {
+                setIsGoogleLoaded(true);
+                clearInterval(interval);
+            }
+        }, 500);
+        return () => clearInterval(interval);
+    }
+  }, []);
+
+  // Auto-Reverse Geocode User Location
+  useEffect(() => {
+      // Only run if we have location, google api, and NO existing pickup address
+      if (userLocation && isGoogleLoaded) {
+          const geocoder = new window.google.maps.Geocoder();
+          geocoder.geocode({ location: userLocation }, (results: any, status: any) => {
+              if (status === 'OK' && results && results[0]) {
+                  setFormData(prev => {
+                      if (prev.pickup) return prev; // Avoid overwriting if user started typing
+                      return {
+                          ...prev,
+                          pickup: results[0].formatted_address,
+                          pickupCoords: userLocation
+                      };
+                  });
+              } else {
+                 console.log("Geocoding failed or no results found");
+              }
+          });
+      }
+  }, [userLocation, isGoogleLoaded]);
 
   useEffect(() => {
     const saved = sessionStorage.getItem('pendingBooking');

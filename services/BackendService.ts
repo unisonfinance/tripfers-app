@@ -608,11 +608,23 @@ class BackendService {
             return {
                 mainFaviconUrl: '',
                 adminFaviconUrl: '',
-                loginFormImageUrl: ''
+                loginFormImageUrl: '',
+                mainSiteLogoUrl: '',
+                logoMarginLeft: 0,
+                logoMarginTop: 0,
+                logoMarginBottom: 0
             };
         } catch (error) {
             console.warn("Failed to fetch branding:", error);
-            return { mainFaviconUrl: '', adminFaviconUrl: '', loginFormImageUrl: '' };
+            return { 
+                mainFaviconUrl: '', 
+                adminFaviconUrl: '', 
+                loginFormImageUrl: '',
+                mainSiteLogoUrl: '',
+                logoMarginLeft: 0,
+                logoMarginTop: 0,
+                logoMarginBottom: 0
+            };
         }
     }
 

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, UserRole, MarketingBannerSettings } from '../types';
+import { User, UserRole, MarketingBannerSettings, BrandingSettings } from '../types';
 import { Icons } from './Icons';
 import { MembershipModal } from './MembershipModal';
 import { AuthModal } from './AuthModal';
@@ -26,6 +26,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
   
   // Marketing Banner State
   const [marketingBanner, setMarketingBanner] = useState<MarketingBannerSettings | null>(null);
+  const [branding, setBranding] = useState<BrandingSettings | null>(null);
 
   const { t, i18n } = useTranslation();
 
@@ -35,6 +36,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
   // Fetch Marketing Settings
   useEffect(() => {
     backend.getMarketingSettings().then(setMarketingBanner).catch(console.error);
+    backend.getBrandingSettings().then(setBranding).catch(console.error);
   }, []);
 
   // Enforce English for Admins (REMOVED: Allowing Admin to switch languages as requested)
@@ -94,7 +96,20 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
 
              <div className="flex items-center gap-2">
                 {/* Logo Text */}
-                <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white md:hidden">TripFers</span>
+                {branding?.mainSiteLogoUrl ? (
+                    <img 
+                        src={branding.mainSiteLogoUrl} 
+                        alt="Logo" 
+                        className="h-8 w-auto md:hidden object-contain"
+                        style={{
+                            marginLeft: branding.logoMarginLeft ? `${branding.logoMarginLeft}px` : undefined,
+                            marginTop: branding.logoMarginTop ? `${branding.logoMarginTop}px` : undefined,
+                            marginBottom: branding.logoMarginBottom ? `${branding.logoMarginBottom}px` : undefined
+                        }}
+                    />
+                ) : (
+                    <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white md:hidden">TripFers</span>
+                )}
 
                 {user?.isMember && (
                     <span className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
