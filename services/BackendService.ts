@@ -446,25 +446,29 @@ class BackendService {
         }
     }
 
-    async uploadDocument(userId: string, type: DocumentType, file: File): Promise<DriverDocument> {
-        const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
-           const reader = new FileReader();
-           reader.readAsDataURL(file);
-           reader.onload = () => resolve(reader.result as string);
-           reader.onerror = error => reject(error);
-       });
-       const base64Url = await toBase64(file);
+    async uploadDocument(userId: string, type: DocumentType, file: File, url?: string): Promise<DriverDocument> {
+       let finalUrl = url;
+       if (!finalUrl) {
+           const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+               const reader = new FileReader();
+               reader.readAsDataURL(file);
+               reader.onload = () => resolve(reader.result as string);
+               reader.onerror = error => reject(error);
+           });
+           finalUrl = await toBase64(file);
+       }
 
        const newDoc: DriverDocument = {
            id: 'doc_' + Math.random().toString(36).substr(2, 9),
            type,
-           url: base64Url,
+           url: finalUrl,
            status: 'PENDING',
            uploadedAt: new Date().toISOString()
        };
 
        const user = this.users.find(u => u.id === userId);
        if (user) {
+           // REPLACE existing document of same type if exists
            const currentDocs = user.documents?.filter(d => d.type !== type) || [];
            await updateDoc(doc(db, 'users', userId), {
                documents: [...currentDocs, newDoc]

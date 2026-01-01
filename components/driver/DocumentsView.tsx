@@ -52,13 +52,15 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({ currentUser, onBac
       setUploading(type);
       
       try {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        await backend.uploadDocument(currentUser.id, type, file);
+        const path = `drivers/${currentUser.id}/documents/${type}_${Date.now()}_${file.name}`;
+        const url = await backend.uploadFile(path, file);
+        await backend.uploadDocument(currentUser.id, type, file, url);
       } catch (error) {
         console.error("Upload failed", error);
       } finally {
         setUploading(null);
+        // Clear input to allow re-uploading same file if needed
+        e.target.value = '';
       }
     }
   };
