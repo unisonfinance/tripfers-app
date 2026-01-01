@@ -69,19 +69,28 @@ const CalendarView = ({ jobs, onSelectDate, selectedDate }: { jobs: Job[], onSel
             const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             const info = jobsByDate[dateStr];
             const isSelected = selectedDate === dateStr;
+            
+            // Check if it's today
+            const today = new Date();
+            const isToday = today.getDate() === d && today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear();
 
             days.push(
                 <button 
                     key={d} 
                     onClick={() => onSelectDate(isSelected ? null : dateStr)}
-                    className={`h-14 border border-slate-100 dark:border-slate-700 rounded-lg relative flex flex-col items-center justify-start pt-1 transition-all
-                        ${isSelected ? 'bg-black text-white ring-2 ring-offset-2 ring-black' : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'}
+                    className={`h-14 border rounded-xl relative flex flex-col items-center justify-start pt-1 transition-all
+                        ${isSelected 
+                            ? 'bg-black text-white ring-2 ring-offset-2 ring-black border-transparent z-10' 
+                            : isToday 
+                                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 font-extrabold' 
+                                : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+                        }
                     `}
                 >
-                    <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-700 dark:text-slate-300'}`}>{d}</span>
+                    <span className={`text-xs ${isSelected ? 'text-white' : isToday ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>{d}</span>
                     <div className="flex gap-1 mt-1">
-                        {info?.hasScheduled && <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>}
-                        {info?.hasPast && <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>}
+                        {info?.hasScheduled && <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-sm"></div>}
+                        {info?.hasPast && <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-500"></div>}
                     </div>
                 </button>
             );

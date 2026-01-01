@@ -1290,10 +1290,17 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                                                                             <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{bid.vehicleDescription}</p>
                                                                         </div>
                                                                     </div>
-                                                                    <div className="text-right flex flex-row md:flex-col justify-between items-center md:items-end w-full md:w-auto">
-                                                                        <p className="text-2xl font-black text-slate-900 dark:text-white">${bid.amount}</p>
-                                                                        <button onClick={() => setPaymentModalData({ jobId: job.id, bidId: bid.id, amount: bid.amount, driverName: bid.driverName })} className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md uppercase">{t('accept')}</button>
-                                                                    </div>
+                                                                    <div className="text-right flex flex-row md:flex-col justify-between items-center md:items-end w-full md:w-auto gap-3">
+                                        <p className="text-2xl font-black text-slate-900 dark:text-white">${bid.amount}</p>
+                                        <div className="flex gap-2">
+                                            <button className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white p-2.5 rounded-xl transition-colors">
+                                                <Icons.MessageSquare className="w-5 h-5" />
+                                            </button>
+                                            <button onClick={() => setPaymentModalData({ jobId: job.id, bidId: bid.id, amount: bid.amount, driverName: bid.driverName })} className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-md uppercase tracking-wide transform hover:scale-105 transition-all">
+                                                {t('accept')}
+                                            </button>
+                                        </div>
+                                    </div>
                                                                 </div>
                                                             </div>
                                                         );
