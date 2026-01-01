@@ -237,7 +237,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
       {/* Main Content - Add margin for fixed sidebar ONLY for Admin */}
       <main className={`flex-1 px-1 overflow-y-auto mt-16 
           ${user?.role === UserRole.ADMIN ? 'py-2 md:px-8 md:pb-8 md:pt-2 md:ml-64' : 'py-4 md:p-8'} 
-          ${isClient && !user?.isMember ? 'pt-24 md:pt-8' : ''}
+          ${isClient && !user?.isMember && marketingBanner?.isEnabled ? 'pt-20 md:pt-8' : ''}
       `}>
         <div className="max-w-6xl mx-auto">
           {children}
