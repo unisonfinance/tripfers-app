@@ -207,77 +207,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
            </div>
        ) : (
            /* CLIENT & DRIVER LOGIN */
-           <div className="bg-[#151f32] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-slide-up relative border border-slate-700">
-                <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors z-20"><Icons.X className="w-5 h-5"/></button>
+           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-slide-up relative border border-slate-200 dark:border-slate-700">
+                <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors z-20"><Icons.X className="w-5 h-5"/></button>
                 
                 <div className="p-8 flex flex-col items-center">
-                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-lg overflow-hidden relative border-4 border-[#151f32] ring-1 ring-slate-700">
-                         <div className="absolute inset-0 border-[3px] border-red-600 rounded-full m-1 opacity-80"></div>
-                         <div className="relative z-10 flex flex-col items-center justify-center -mt-1">
-                            <span className="text-red-700 font-black text-3xl tracking-tighter leading-none">UT</span>
-                            <div className="w-8 h-1 bg-red-600 rounded-full mt-0.5"></div>
-                         </div>
+                    <div className="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-red-500/20 transform rotate-3">
+                         <span className="text-white font-black text-2xl tracking-tighter">UT</span>
                     </div>
                     
-                    <h2 className="text-slate-400 text-[10px] font-bold tracking-[0.2em] uppercase mb-6">{t('client_driver_portal')}</h2>
+                    <h2 className="text-slate-900 dark:text-white text-lg font-bold tracking-tight mb-1">{t('client_driver_portal')}</h2>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mb-6 text-center">Login to access your dashboard</p>
                     
                     {error && (
-                       <div className="w-full mb-4 p-3 bg-red-900/30 border border-red-900 rounded-lg text-red-400 text-xs flex items-start gap-2">
+                       <div className="w-full mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900 rounded-lg text-red-600 dark:text-red-400 text-xs flex items-start gap-2">
                          <Icons.Shield className="w-4 h-4 shrink-0" />
                          <span>{error}</span>
                        </div>
                     )}
 
                     {/* Tabs */}
-                    <div className="grid grid-cols-2 w-full bg-[#0f172a] p-1 rounded-lg mb-2 border border-slate-700/50">
+                    <div className="grid grid-cols-2 w-full bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-6">
                         <button 
                             onClick={() => setSelectedRole(UserRole.CLIENT)} 
-                            className={`text-xs font-bold py-2.5 rounded transition-all duration-200 ${selectedRole === UserRole.CLIENT ? 'bg-[#1e293b] text-white shadow-sm border border-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
+                            className={`text-xs font-bold py-2.5 rounded-lg transition-all duration-200 ${selectedRole === UserRole.CLIENT ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                         >
                             {t('client').toUpperCase()}
                         </button>
                         <button 
                             onClick={() => setSelectedRole(UserRole.DRIVER)} 
-                            className={`text-xs font-bold py-2.5 rounded transition-all duration-200 ${selectedRole === UserRole.DRIVER ? 'bg-[#1e293b] text-white shadow-sm border border-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
+                            className={`text-xs font-bold py-2.5 rounded-lg transition-all duration-200 ${selectedRole === UserRole.DRIVER ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                         >
                             {t('driver').toUpperCase()}
                         </button>
                     </div>
                     
-                    <div className="flex justify-center mb-6 h-6">
-                       {selectedRole === UserRole.CLIENT && (
-                           <button 
-                             type="button"
-                             onClick={() => setFormData(prev => ({...prev, email: 'kittyleetrading@gmail.com', password: 'Corina77&&'}))}
-                             className="text-[10px] text-slate-400 border border-slate-700 hover:border-slate-500 hover:text-white px-3 py-1 rounded transition-colors uppercase tracking-wide"
-                           >
-                             {t('use_test_client')}
-                           </button>
-                       )}
-                       {selectedRole === UserRole.DRIVER && (
-                           <button 
-                             type="button"
-                             onClick={() => setFormData(prev => ({...prev, email: 'info@unisontransfers.com.au', password: 'Corina77&&'}))}
-                             className="text-[10px] text-slate-400 border border-slate-700 hover:border-slate-500 hover:text-white px-3 py-1 rounded transition-colors uppercase tracking-wide"
-                           >
-                             {t('use_test_driver')}
-                           </button>
-                       )}
-                    </div>
-                    
                     <form onSubmit={handleSubmit} className="w-full space-y-4">
                          {isSignUp && (
                             <div className="space-y-1 animate-fade-in">
-                                <label className="text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1">{t('full_name')}</label>
+                                <label className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1">{t('full_name')}</label>
                                 <div className="relative group">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-red-500 transition-colors">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-600 transition-colors">
                                         <Icons.User className="w-5 h-5" />
                                     </div>
                                     <input 
                                         type="text" 
                                         required
-                                        className="w-full bg-[#1e293b] border border-slate-700 rounded-lg py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:border-red-600 transition-colors text-sm"
-                                        placeholder={t('full_name')}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-10 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm font-medium"
                                         value={formData.name}
                                         onChange={e => setFormData({...formData, name: e.target.value})}
                                     />
@@ -286,16 +261,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                          )}
 
                          <div className="space-y-1">
-                            <label className="text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1">{t('email_address')} <span className="text-red-500">*</span></label>
+                            <label className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1">{t('email_address')} <span className="text-red-500">*</span></label>
                             <div className="relative group">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-red-500 transition-colors">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-600 transition-colors">
                                     <Icons.Mail className="w-5 h-5" />
                                 </div>
                                 <input 
                                     type="email" 
                                     required
-                                    className="w-full bg-[#1e293b] border border-slate-700 rounded-lg py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:border-red-600 transition-colors text-sm"
-                                    placeholder={selectedRole === UserRole.CLIENT ? "kittyleetrading@gmail.com" : selectedRole === UserRole.DRIVER ? "info@unisontransfers.com.au" : ""}
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-10 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm font-medium"
                                     value={formData.email}
                                     onChange={e => setFormData({...formData, email: e.target.value})}
                                 />
@@ -304,22 +278,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
 
                          <div className="space-y-1">
                             <div className="flex justify-between items-center px-1">
-                                <label className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t('password')}</label>
-                                {!isSignUp && <button type="button" className="text-red-500 text-[10px] font-bold hover:underline">{t('forgot_password')}</button>}
+                                <label className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t('password')}</label>
+                                {!isSignUp && <button type="button" className="text-red-600 text-[10px] font-bold hover:underline">{t('forgot_password')}</button>}
                             </div>
                             <div className="relative group">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-red-500 transition-colors">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-600 transition-colors">
                                     <Icons.Lock className="w-5 h-5" />
                                 </div>
                                 <input 
                                     type={showPassword ? "text" : "password"}
                                     required
-                                    className="w-full bg-[#1e293b] border border-slate-700 rounded-lg py-3 pl-10 pr-10 text-white placeholder-slate-600 focus:outline-none focus:border-red-600 transition-colors text-sm font-sans"
-                                    placeholder={!isSignUp ? "Corina77&&" : ""}
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-10 pr-10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm font-medium font-sans"
                                     value={formData.password}
                                     onChange={e => setFormData({...formData, password: e.target.value})}
                                 />
-                                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors">
+                                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                                     {showPassword ? <Icons.EyeOff className="w-4 h-4"/> : <Icons.Eye className="w-4 h-4"/>}
                                  </button>
                             </div>
@@ -327,16 +300,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
 
                          {isSignUp && (
                             <div className="space-y-1 animate-fade-in">
-                                <label className="text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1">{t('confirm_password')}</label>
+                                <label className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1">{t('confirm_password')}</label>
                                 <div className="relative group">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-red-500 transition-colors">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-600 transition-colors">
                                         <Icons.Lock className="w-5 h-5" />
                                     </div>
                                     <input 
                                         type={showPassword ? "text" : "password"}
                                         required
-                                        className="w-full bg-[#1e293b] border border-slate-700 rounded-lg py-3 pl-10 pr-10 text-white placeholder-slate-600 focus:outline-none focus:border-red-600 transition-colors text-sm font-sans"
-                                        placeholder=""
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-10 pr-10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm font-medium font-sans"
                                         value={confirmPassword}
                                         onChange={e => setConfirmPassword(e.target.value)}
                                     />
@@ -344,26 +316,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                             </div>
                          )}
 
-                         <button type="submit" disabled={loading} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg shadow-lg shadow-red-900/20 transition-all mt-4 uppercase tracking-wide text-xs">
+                         <button type="submit" disabled={loading} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-red-600/20 transition-all mt-4 uppercase tracking-wide text-xs transform active:scale-[0.98]">
                             {loading ? t('processing') : (isSignUp ? t('sign_up') : t('sign_in'))}
                          </button>
 
                          <div className="relative py-2 my-2">
                             <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-slate-700"></div>
+                                <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
                             </div>
                             <div className="relative flex justify-center text-xs">
-                                <span className="px-2 bg-[#151f32] text-slate-500 font-medium">{t('or_continue_with')}</span>
+                                <span className="px-2 bg-white dark:bg-slate-900 text-slate-500 font-medium">{t('or_continue_with')}</span>
                             </div>
                          </div>
 
-                         <button type="button" onClick={handleGoogleLogin} className="w-full bg-white hover:bg-slate-100 text-slate-900 font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors text-xs uppercase tracking-wide shadow-sm">
+                         <button type="button" onClick={handleGoogleLogin} className="w-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-xs uppercase tracking-wide shadow-sm hover:shadow-md">
                             <Icons.Google className="w-4 h-4" /> {t('sign_in_google')}
                          </button>
 
                          <div className="text-center pt-4 pb-2">
-                            <span className="text-slate-400 text-xs">{isSignUp ? t('already_account') + ' ' : t('dont_have_account') + ' '}</span>
-                            <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-red-500 font-bold text-xs hover:underline uppercase">
+                            <span className="text-slate-500 dark:text-slate-400 text-xs">{isSignUp ? t('already_account') + ' ' : t('dont_have_account') + ' '}</span>
+                            <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-red-600 font-bold text-xs hover:underline uppercase">
                                 {isSignUp ? t('log_in') : t('sign_up')}
                             </button>
                          </div>
