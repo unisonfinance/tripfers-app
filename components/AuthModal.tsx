@@ -17,7 +17,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
   const [isSignUp, setIsSignUp] = useState(false);
   const [authStep, setAuthStep] = useState<'options' | 'email'>('options');
   
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', country: '' });
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
@@ -25,6 +25,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
   const [loading, setLoading] = useState(false);
   // Dynamic logo fetching
   const [logoUrl, setLogoUrl] = useState('/favicon.png');
+
+  // List of countries (Full List)
+  const countries = [
+    "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
+    "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi",
+    "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic",
+    "Denmark", "Djibouti", "Dominica", "Dominican Republic",
+    "East Timor", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia",
+    "Fiji", "Finland", "France",
+    "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana",
+    "Haiti", "Honduras", "Hungary",
+    "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Ivory Coast",
+    "Jamaica", "Japan", "Jordan",
+    "Kazakhstan", "Kenya", "Kiribati", "Korea, North", "Korea, South", "Kosovo", "Kuwait", "Kyrgyzstan",
+    "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg",
+    "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar",
+    "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Macedonia", "Norway",
+    "Oman",
+    "Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal",
+    "Qatar",
+    "Romania", "Russia", "Rwanda",
+    "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria",
+    "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu",
+    "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan",
+    "Vanuatu", "Vatican City", "Venezuela", "Vietnam",
+    "Yemen",
+    "Zambia", "Zimbabwe", "Other"
+  ];
 
   useEffect(() => {
     if (isOpen) {
@@ -42,10 +70,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
             setFormData({
                 email: '',
                 password: '',
-                name: ''
+                name: '',
+                country: ''
             });
         } else {
-             setFormData({ email: '', password: '', name: '' });
+             setFormData({ email: '', password: '', name: '', country: '' });
         }
         setError(null);
         setAuthStep('options');
@@ -107,12 +136,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
              setLoading(false);
              return;
         }
+        // Validation: Drivers MUST select a country
+        if (selectedRole === UserRole.DRIVER && !formData.country) {
+            setError("Please select a country");
+            setLoading(false);
+            return;
+       }
     }
 
     try {
       let user: User;
       if (isSignUp) {
+        // Pass country as part of user data (we might need to update backend.register signature or just pass it as extra)
+        // For now, let's assume backend.register handles name, we'll need to update it to handle country or update profile after
         user = await backend.register(formData.email, formData.password, formData.name, selectedRole);
+        // Update country immediately
+        await backend.adminUpdateUserInfo(user.id, { country: formData.country });
       } else {
         try {
             user = await backend.login(formData.email, formData.password, selectedRole, formData.name);
@@ -219,7 +258,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                 
                 <div className="p-8 flex flex-col items-center">
                     {/* Dynamic Logo from Admin Settings */}
-                    <div className="w-24 h-24 mb-6 relative flex items-center justify-center">
+                    <div className="w-20 h-20 mb-4 relative flex items-center justify-center">
                          <img 
                             src={logoUrl} 
                             alt="Logo" 
@@ -232,8 +271,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                          />
                     </div>
                     
-                    <h2 className="text-slate-900 dark:text-white text-lg font-bold tracking-tight mb-1">{t('client_driver_portal')}</h2>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs mb-6 text-center">Login to access your dashboard</p>
+                    <h2 className="text-slate-900 dark:text-white text-base font-bold tracking-tight mb-1">{t('client_driver_portal')}</h2>
+                    <p className="text-slate-500 dark:text-slate-400 text-[10px] mb-4 text-center">Login to access your dashboard</p>
                     
                     {error && (
                        <div className="w-full mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900 rounded-lg text-red-600 dark:text-red-400 text-xs flex items-start gap-2">
@@ -243,33 +282,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                     )}
 
                     {/* Tabs */}
-                    <div className="grid grid-cols-2 w-full bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-6">
+                    <div className="grid grid-cols-2 w-full bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-4">
                         <button 
                             onClick={() => setSelectedRole(UserRole.CLIENT)} 
-                            className={`text-xs font-bold py-2.5 rounded-lg transition-all duration-200 ${selectedRole === UserRole.CLIENT ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                            className={`text-[10px] font-bold py-2 rounded-lg transition-all duration-200 ${selectedRole === UserRole.CLIENT ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                         >
                             {t('client').toUpperCase()}
                         </button>
                         <button 
                             onClick={() => setSelectedRole(UserRole.DRIVER)} 
-                            className={`text-xs font-bold py-2.5 rounded-lg transition-all duration-200 ${selectedRole === UserRole.DRIVER ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                            className={`text-[10px] font-bold py-2 rounded-lg transition-all duration-200 ${selectedRole === UserRole.DRIVER ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                         >
                             {t('driver').toUpperCase()}
                         </button>
                     </div>
                     
-                    <form onSubmit={handleSubmit} className="w-full space-y-4">
+                    <form onSubmit={handleSubmit} className="w-full space-y-3">
                          {isSignUp && (
                             <div className="space-y-1 animate-fade-in">
-                                <label className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1">{t('full_name')}</label>
+                                <label className="text-slate-500 dark:text-slate-400 text-[9px] font-bold uppercase tracking-wider ml-1">{t('full_name')}</label>
                                 <div className="relative group">
                                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-600 transition-colors">
-                                        <Icons.User className="w-5 h-5" />
+                                        <Icons.User className="w-4 h-4" />
                                     </div>
                                     <input 
                                         type="text" 
                                         required
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-10 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm font-medium"
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2 pl-9 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-xs font-medium"
                                         value={formData.name}
                                         onChange={e => setFormData({...formData, name: e.target.value})}
                                     />
@@ -278,15 +317,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                          )}
 
                          <div className="space-y-1">
-                            <label className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1">{t('email_address')} <span className="text-red-500">*</span></label>
+                            <label className="text-slate-500 dark:text-slate-400 text-[9px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1">{t('email_address')} <span className="text-red-500">*</span></label>
                             <div className="relative group">
                                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-600 transition-colors">
-                                    <Icons.Mail className="w-5 h-5" />
+                                    <Icons.Mail className="w-4 h-4" />
                                 </div>
                                 <input 
                                     type="email" 
                                     required
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-10 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm font-medium"
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2 pl-9 pr-4 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-xs font-medium"
                                     value={formData.email}
                                     onChange={e => setFormData({...formData, email: e.target.value})}
                                 />
@@ -295,27 +334,53 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
 
                          <div className="space-y-1">
                             <div className="flex justify-between items-center px-1">
-                                <label className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t('password')}</label>
-                                {!isSignUp && <button type="button" className="text-red-600 text-[10px] font-bold hover:underline">{t('forgot_password')}</button>}
+                                <label className="text-slate-500 dark:text-slate-400 text-[9px] font-bold uppercase tracking-wider">{t('password')}</label>
+                                {!isSignUp && <button type="button" className="text-red-600 text-[9px] font-bold hover:underline">{t('forgot_password')}</button>}
                             </div>
                             <div className="relative group">
                                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-600 transition-colors">
-                                    <Icons.Lock className="w-5 h-5" />
+                                    <Icons.Lock className="w-4 h-4" />
                                 </div>
                                 <input 
                                     type={showPassword ? "text" : "password"}
                                     required
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-10 pr-10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm font-medium font-sans"
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2 pl-9 pr-9 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-xs font-medium font-sans"
                                     value={formData.password}
                                     onChange={e => setFormData({...formData, password: e.target.value})}
                                 />
                                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                                    {showPassword ? <Icons.EyeOff className="w-4 h-4"/> : <Icons.Eye className="w-4 h-4"/>}
+                                    {showPassword ? <Icons.EyeOff className="w-3.5 h-3.5"/> : <Icons.Eye className="w-3.5 h-3.5"/>}
                                  </button>
                             </div>
                          </div>
 
-                         <button type="submit" disabled={loading} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-red-600/20 transition-all mt-4 uppercase tracking-wide text-xs transform active:scale-[0.98]">
+                         {/* Country Selector - Only for Sign Up and DRIVERS */}
+                         {isSignUp && selectedRole === UserRole.DRIVER && (
+                             <div className="space-y-1 animate-fade-in">
+                                <label className="text-slate-500 dark:text-slate-400 text-[9px] font-bold uppercase tracking-wider ml-1">{t('country')}</label>
+                                <div className="relative group">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-600 transition-colors">
+                                        <Icons.Globe className="w-4 h-4" />
+                                    </div>
+                                    <select 
+                                        required
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2 pl-9 pr-4 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-xs font-medium appearance-none"
+                                        value={formData.country}
+                                        onChange={e => setFormData({...formData, country: e.target.value})}
+                                    >
+                                        <option value="" disabled>Select Country</option>
+                                        {countries.map(c => (
+                                            <option key={c} value={c}>{c}</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                        <Icons.ChevronDown className="w-3.5 h-3.5" />
+                                    </div>
+                                </div>
+                             </div>
+                         )}
+
+                         <button type="submit" disabled={loading} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-red-600/20 transition-all mt-2 uppercase tracking-wide text-xs transform active:scale-[0.98]">
                             {loading ? t('processing') : (isSignUp ? t('sign_up') : t('sign_in'))}
                          </button>
 

@@ -1776,10 +1776,10 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
       if (!noExit) setSettingsView('MAIN'); 
       setTimeout(() => setToast({msg: 'Changes saved', type: 'success'}), 2000); 
   };
-  const handleUpdateDocuments = async (userData: Partial<User>) => { const updatedUser = await mockBackend.adminUpdateUserInfo(currentUser.id, userData); setCurrentUser(updatedUser); setToast({msg: 'Changes saved', type: 'success'}); };
-  const handleUpdateZones = async (zones: any[]) => { const updatedUser = { ...currentUser, serviceZones: zones }; await mockBackend.adminUpdateUserInfo(currentUser.id, { serviceZones: zones }); setCurrentUser(updatedUser); setSettingsView('MAIN'); setTimeout(() => { setToast({ msg: 'Changes saved', type: 'success' }); }, 2000); };
-  const handleUpdateZonesNoExit = async (zones: any[]) => { const updatedUser = { ...currentUser, serviceZones: zones }; await mockBackend.adminUpdateUserInfo(currentUser.id, { serviceZones: zones }); setCurrentUser(updatedUser); };
-  const handleLogout = () => { mockBackend.logout(); window.location.hash = '/'; window.location.reload(); };
+  const handleUpdateDocuments = async (userData: Partial<User>) => { const updatedUser = await backend.adminUpdateUserInfo(currentUser.id, userData); setCurrentUser(updatedUser); setToast({msg: 'Changes saved', type: 'success'}); };
+  const handleUpdateZones = async (zones: any[]) => { const updatedUser = { ...currentUser, serviceZones: zones }; await backend.adminUpdateUserInfo(currentUser.id, { serviceZones: zones }); setCurrentUser(updatedUser); setSettingsView('MAIN'); setTimeout(() => { setToast({ msg: 'Changes saved', type: 'success' }); }, 2000); };
+  const handleUpdateZonesNoExit = async (zones: any[]) => { const updatedUser = { ...currentUser, serviceZones: zones }; await backend.adminUpdateUserInfo(currentUser.id, { serviceZones: zones }); setCurrentUser(updatedUser); };
+  const handleLogout = () => { backend.logout(); window.location.hash = '/'; window.location.reload(); };
 
   const hasVehicles = myVehicles.length > 0;
   
