@@ -272,7 +272,8 @@ class BackendService {
                 documents: [],
                 totalTrips: 0,
                 balance: 0,
-                totalEarnings: 0
+                totalEarnings: 0,
+                serviceZones: [] // Ensure serviceZones initialized
             };
             await setDoc(doc(db, 'users', newUser.id), newUser);
             this.currentUser = newUser;
@@ -735,7 +736,15 @@ class BackendService {
         });
     }
 
-    async updateDriverVehicles(uid: string, v: VehicleSettings[]) { await updateDoc(doc(db, 'users', uid), { vehicles: v }); return this.users.find(u => u.id === uid)!; }
+    async updateDriverVehicles(uid: string, v: VehicleSettings[]) { 
+        await updateDoc(doc(db, 'users', uid), { vehicles: v }); 
+        return this.users.find(u => u.id === uid)!; 
+    }
+
+    async updateDriverServiceZones(uid: string, zones: any[]) {
+        await updateDoc(doc(db, 'users', uid), { serviceZones: zones });
+        return this.users.find(u => u.id === uid)!;
+    }
     
     async skipJob(uid: string, jid: string) {
         const user = this.users.find(u => u.id === uid);

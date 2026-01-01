@@ -632,9 +632,15 @@ const ServiceZonesView = ({ onClose, onSave, initialZones }: any) => {
         }
 
         if (zoneData) {
-            onSave([zoneData]); // Save as single item array
-            setShowSaveSuccess(true);
-            setTimeout(() => setShowSaveSuccess(false), 3000); // Hide after 3 seconds
+            // CALL BACKEND TO SAVE TO FIRESTORE
+            backend.updateDriverServiceZones(backend.getCurrentUser()?.id || '', [zoneData]).then(() => {
+                onSave([zoneData]); 
+                setShowSaveSuccess(true);
+                setTimeout(() => setShowSaveSuccess(false), 3000);
+            }).catch(err => {
+                console.error("Failed to save zone", err);
+                alert("Failed to save operating area.");
+            });
         }
     };
 
