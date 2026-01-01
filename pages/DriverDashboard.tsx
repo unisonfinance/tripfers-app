@@ -1844,7 +1844,16 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
           case 'VEHICLES': return <SettingsLayout title={t('vehicles')} onBack={() => setSettingsView('MAIN')}><VehiclesView vehicles={myVehicles} onEdit={(id: string) => { setEditingVehicleId(id); setSettingsView('EDIT_VEHICLE'); }} onAdd={() => setSettingsView('CREATE_VEHICLE')} onDelete={handleDeleteVehicle} drivers={[currentUser, ...(currentUser.subDrivers || [])]} onUpdate={handleUpdateVehicle} /></SettingsLayout>;
           case 'CREATE_VEHICLE': return <CreateVehicleView onBack={() => setSettingsView('VEHICLES')} onSaveAndContinue={handleCreateAndContinue} />;
           case 'EDIT_VEHICLE': return <EditVehicleView vehicleId={editingVehicleId} vehicles={myVehicles} onSave={handleSaveEditedVehicle} onClose={() => setSettingsView('VEHICLES')} onDelete={() => { handleDeleteVehicle(editingVehicleId!); setSettingsView('VEHICLES'); setEditingVehicleId(null); }} />;
-          case 'COMPANY': return <SettingsLayout title={t('company_profile')} onBack={() => setSettingsView('MAIN')} footer={<button onClick={() => handleUpdateProfile({ company: currentUser.company })} className="w-full bg-black text-white font-bold py-3 rounded-xl">{t('save')}</button>}><div className="p-6"><InputField label={t('placeholder_country')} value={currentUser.company?.country || ''} onChange={(v: string) => handleUpdateProfile({ company: {...currentUser.company, country: v} as CompanyProfile })} /><InputField label={t('placeholder_address')} value={currentUser.company?.registrationAddress || ''} onChange={(v: string) => handleUpdateProfile({ company: {...currentUser.company, registrationAddress: v} as CompanyProfile })} /></div></SettingsLayout>;
+          case 'COMPANY': return <SettingsLayout title={t('company_profile')} onBack={() => setSettingsView('MAIN')} footer={<button onClick={handleCompanyProfileSave} className="w-full bg-black text-white font-bold py-3 rounded-xl">{t('save')}</button>}>
+            <div className="p-6 space-y-4">
+                <InputField label={t('company_name')} value={companyProfile.name} onChange={(v: string) => setCompanyProfile({...companyProfile, name: v})} placeholder="Company Name" />
+                <InputField label={t('vat_number')} value={companyProfile.vatNumber} onChange={(v: string) => setCompanyProfile({...companyProfile, vatNumber: v})} placeholder="VAT / Tax ID" />
+                <InputField label={t('address')} value={companyProfile.address} onChange={(v: string) => setCompanyProfile({...companyProfile, address: v})} placeholder="Full Address" />
+                <InputField label={t('phone_number')} value={companyProfile.phone} onChange={(v: string) => setCompanyProfile({...companyProfile, phone: v})} placeholder="+1 234 567 890" />
+                <InputField label={t('email')} value={companyProfile.email} onChange={(v: string) => setCompanyProfile({...companyProfile, email: v})} placeholder="company@example.com" />
+                <InputField label={t('website')} value={companyProfile.website} onChange={(v: string) => setCompanyProfile({...companyProfile, website: v})} placeholder="https://..." />
+            </div>
+          </SettingsLayout>;
           case 'ZONES': return <ServiceZonesView onClose={() => setSettingsView('MAIN')} onSave={handleUpdateZonesNoExit} initialZones={currentUser.serviceZones} />;
           case 'PAYOUTS': return <PayoutsView currentUser={currentUser} onUpdate={handleUpdateProfile} onBack={() => setSettingsView('MAIN')} />;
           // Simple Wrappers

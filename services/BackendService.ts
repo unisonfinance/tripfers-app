@@ -745,6 +745,11 @@ class BackendService {
         await updateDoc(doc(db, 'users', uid), { serviceZones: zones });
         return this.users.find(u => u.id === uid)!;
     }
+
+    async updateDriverCompanyProfile(uid: string, p: CompanyProfile) {
+        await updateDoc(doc(db, 'users', uid), { companyProfile: p });
+        return this.users.find(u => u.id === uid)!;
+    }
     
     async skipJob(uid: string, jid: string) {
         const user = this.users.find(u => u.id === uid);
