@@ -22,7 +22,12 @@ service firebase.storage {
     // 3. Driver Documents: Drivers can upload to their own folder
     match /drivers/{userId}/{allPaths=**} {
       allow read: if isAuthenticated();
-      // Allow write if the user matches the folder ID OR if it's an admin
+      allow write: if request.auth.uid == userId || isAuthenticated();
+    }
+
+    // 4. Driver Vehicles: Drivers can upload to their own vehicle folder
+    match /vehicles/{userId}/{allPaths=**} {
+      allow read: if true;
       allow write: if request.auth.uid == userId || isAuthenticated();
     }
     

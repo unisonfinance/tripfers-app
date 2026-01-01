@@ -1051,42 +1051,46 @@ const VehiclesView = ({ vehicles, onEdit, onAdd, onDelete, drivers, onUpdate }: 
     );
 };
 
-const CreateVehicleView = ({ onBack, onSaveAndContinue }: any) => {
+const CreateVehicleView = ({ onBack, onSaveAndContinue, currentUser }: any) => {
     const [form, setForm] = useState({ 
         make: '', model: '', year: '', plate: '', color: '', type: 'Economy',
         maxPassengers: 4, maxLuggage: 2, maxCarryOn: 2,
-        photos: [] as VehiclePhoto[]
+        photos: [] as VehiclePhoto[],
+        features: { wifi: false, water: false, charger: false, accessible: false, childSeat: false }
     });
     const { t } = useTranslation();
     const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+    const [uploading, setUploading] = useState(false);
     
     // Image upload handler (multi-select + max 6)
-    const handleImageUpload = (e: any) => {
-        const files = Array.from(e.target.files || []);
+    const handleImageUpload = async (e: any) => {
+        const files = Array.from(e.target.files || []) as File[];
         if (files.length === 0) return;
+        setUploading(true);
 
-        Promise.all(files.map((file: any) => {
-            return new Promise<VehiclePhoto>((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    resolve({
-                        id: Math.random().toString(36).substr(2, 9),
-                        url: reader.result as string,
-                        status: 'PENDING',
-                        isDefault: false
-                    });
+        try {
+            const newPhotos = await Promise.all(files.map(async (file) => {
+                const path = `vehicles/${currentUser.id}/new/${Date.now()}_${file.name}`;
+                const url = await backend.uploadFile(path, file);
+                return {
+                    id: Math.random().toString(36).substr(2, 9),
+                    url: url,
+                    status: 'APPROVED',
+                    isDefault: false
                 };
-                reader.readAsDataURL(file);
-            });
-        })).then(newPhotos => {
+            }));
+            
             setForm(prev => {
                 const currentPhotos = prev.photos || [];
                 const combined = [...currentPhotos, ...newPhotos].slice(0, 6);
                 return { ...prev, photos: combined };
             });
-        });
-        
-        e.target.value = ''; // Reset input
+        } catch (err) {
+            console.error("Upload failed", err);
+        } finally {
+            setUploading(false);
+            e.target.value = ''; // Reset input
+        }
     };
 
     const removeImage = (index: number) => {
@@ -1117,7 +1121,7 @@ const CreateVehicleView = ({ onBack, onSaveAndContinue }: any) => {
     };
 
     return (
-        <SettingsLayout title={t('add_vehicle')} onBack={onBack} footer={<button onClick={() => onSaveAndContinue(form)} className="w-full bg-[#22C55E] hover:bg-[#16A34A] text-white font-bold py-4 rounded-full uppercase tracking-wide text-sm shadow-lg">{t('continue')}</button>}>
+        <SettingsLayout title={t('add_vehicle')} onBack={onBack} footer={<button onClick={() => onSaveAndContinue(form)} disabled={uploading} className="w-full bg-[#22C55E] hover:bg-[#16A34A] text-white font-bold py-4 rounded-full uppercase tracking-wide text-sm shadow-lg disabled:opacity-50">{uploading ? t('processing') : t('continue')}</button>}>
             <div className="p-6 space-y-6">
                 {/* Image Upload Section */}
                 <div>
@@ -1140,10 +1144,14 @@ const CreateVehicleView = ({ onBack, onSaveAndContinue }: any) => {
                             </div>
                         ))}
                         {form.photos.length < 6 && (
-                            <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
-                                <Icons.Plus className="w-6 h-6 mb-1" />
-                                <span className="text-[10px] font-bold uppercase">{t('add_photo')}</span>
-                                <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
+                            <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors relative">
+                                {uploading ? <Icons.Loader className="w-6 h-6 animate-spin text-slate-400" /> : (
+                                    <>
+                                        <Icons.Plus className="w-6 h-6 mb-1" />
+                                        <span className="text-[10px] font-bold uppercase">{t('add_photo')}</span>
+                                    </>
+                                )}
+                                <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} disabled={uploading} />
                             </label>
                         )}
                     </div>
@@ -1250,14 +1258,26 @@ const CreateVehicleView = ({ onBack, onSaveAndContinue }: any) => {
                         <div>
                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('luggage')}</label>
                             <div className="relative">
-                                <input type="number" value={form.maxLuggage} onChange={e => setForm({...form, maxLuggage: parseInt(e.target.value) || 0})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center" />
+                                <input 
+                                    type="number" 
+                                    value={form.maxLuggage} 
+                                    onChange={e => setForm({...form, maxLuggage: parseInt(e.target.value) || 0})}
+                                    onFocus={(e) => e.target.select()}
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center text-slate-900 dark:text-white"
+                                />
                                 <Icons.Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             </div>
                         </div>
                          <div>
                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('carry_on')}</label>
                             <div className="relative">
-                                <input type="number" value={form.maxCarryOn} onChange={e => setForm({...form, maxCarryOn: parseInt(e.target.value) || 0})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center" />
+                                <input 
+                                    type="number" 
+                                    value={form.maxCarryOn} 
+                                    onChange={e => setForm({...form, maxCarryOn: parseInt(e.target.value) || 0})}
+                                    onFocus={(e) => e.target.select()}
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center text-slate-900 dark:text-white"
+                                />
                                 <Icons.Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 opacity-60" />
                             </div>
                         </div>
@@ -1267,11 +1287,12 @@ const CreateVehicleView = ({ onBack, onSaveAndContinue }: any) => {
         </SettingsLayout>
     );
 };
-const EditVehicleView = ({ vehicleId, vehicles, onSave, onClose, onDelete }: any) => {
+const EditVehicleView = ({ vehicleId, vehicles, onSave, onClose, onDelete, currentUser }: any) => {
     const v = vehicles.find((x: any) => x.id === vehicleId);
     const [form, setForm] = useState(v || { type: 'Economy', photos: [] });
     const { t } = useTranslation();
     const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+    const [uploading, setUploading] = useState(false);
     
     // Initialize default values if missing
     useEffect(() => {
@@ -1281,37 +1302,42 @@ const EditVehicleView = ({ vehicleId, vehicles, onSave, onClose, onDelete }: any
                 maxPassengers: v.maxPassengers || 4,
                 maxLuggage: v.maxLuggage || 2,
                 maxCarryOn: v.maxCarryOn || 2,
-                photos: v.photos || []
+                photos: v.photos || [],
+                features: v.features || { wifi: false, water: false, charger: false, accessible: false, childSeat: false }
             });
         }
     }, [v]);
 
     // Image upload handler (multi-select + max 6)
-    const handleImageUpload = (e: any) => {
-        const files = Array.from(e.target.files || []);
+    const handleImageUpload = async (e: any) => {
+        const files = Array.from(e.target.files || []) as File[];
         if (files.length === 0) return;
+        setUploading(true);
 
-        Promise.all(files.map((file: any) => {
-            return new Promise<VehiclePhoto>((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    resolve({
-                        id: Math.random().toString(36).substr(2, 9),
-                        url: reader.result as string,
-                        status: 'PENDING',
-                        isDefault: false
-                    });
+        try {
+            const newPhotos = await Promise.all(files.map(async (file) => {
+                const path = `vehicles/${currentUser.id}/${form.id}/${Date.now()}_${file.name}`;
+                const url = await backend.uploadFile(path, file);
+                return {
+                    id: Math.random().toString(36).substr(2, 9),
+                    url: url,
+                    status: 'APPROVED',
+                    isDefault: false
                 };
-                reader.readAsDataURL(file);
-            });
-        })).then(newPhotos => {
+            }));
+
             setForm((prev: any) => {
                 const currentPhotos = prev.photos || [];
                 const combined = [...currentPhotos, ...newPhotos].slice(0, 6);
                 return { ...prev, photos: combined };
             });
-        });
-        e.target.value = ''; // Reset
+        } catch (err) {
+            console.error("Upload failed", err);
+            // Optionally show toast
+        } finally {
+            setUploading(false);
+            e.target.value = ''; // Reset
+        }
     };
 
     const removeImage = (index: number) => {
@@ -1342,7 +1368,7 @@ const EditVehicleView = ({ vehicleId, vehicles, onSave, onClose, onDelete }: any
 
     if (!v) return null;
     return (
-        <SettingsLayout title={t('edit_vehicle')} onBack={onClose} footer={<button onClick={() => onSave(form)} className="w-full bg-[#22C55E] hover:bg-[#16A34A] text-white font-bold py-4 rounded-full uppercase tracking-wide text-sm shadow-lg">{t('save_changes')}</button>}>
+        <SettingsLayout title={t('edit_vehicle')} onBack={onClose} footer={<button onClick={() => onSave(form)} disabled={uploading} className="w-full bg-[#22C55E] hover:bg-[#16A34A] text-white font-bold py-4 rounded-full uppercase tracking-wide text-sm shadow-lg disabled:opacity-50">{uploading ? t('processing') : t('save_changes')}</button>}>
             <div className="p-6 space-y-6">
                 {/* Image Upload Section */}
                 <div>
@@ -1365,10 +1391,14 @@ const EditVehicleView = ({ vehicleId, vehicles, onSave, onClose, onDelete }: any
                             </div>
                         ))}
                         {(form.photos || []).length < 6 && (
-                            <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
-                                <Icons.Plus className="w-6 h-6 mb-1" />
-                                <span className="text-[10px] font-bold uppercase">{t('add_photo')}</span>
-                                <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
+                            <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors relative">
+                                {uploading ? <Icons.Loader className="w-6 h-6 animate-spin text-slate-400" /> : (
+                                    <>
+                                        <Icons.Plus className="w-6 h-6 mb-1" />
+                                        <span className="text-[10px] font-bold uppercase">{t('add_photo')}</span>
+                                    </>
+                                )}
+                                <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} disabled={uploading} />
                             </label>
                         )}
                     </div>
@@ -1407,59 +1437,67 @@ const EditVehicleView = ({ vehicleId, vehicles, onSave, onClose, onDelete }: any
                          <div>
                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('passengers')}</label>
                              <div className="relative">
-                                 <input type="number" value={form.maxPassengers} onChange={e => setForm({...form, maxPassengers: parseInt(e.target.value) || 0})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center" />
+                                 <input 
+                                    type="number" 
+                                    value={form.maxPassengers} 
+                                    onChange={e => setForm({...form, maxPassengers: parseInt(e.target.value) || 0})}
+                                    onFocus={(e) => e.target.select()} 
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center text-slate-900 dark:text-white"
+                                />
                                  <Icons.User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                              </div>
                          </div>
                          <div>
                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('luggage')}</label>
                              <div className="relative">
-                                 <input type="number" value={form.maxLuggage} onChange={e => setForm({...form, maxLuggage: parseInt(e.target.value) || 0})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center" />
+                                 <input 
+                                    type="number" 
+                                    value={form.maxLuggage} 
+                                    onChange={e => setForm({...form, maxLuggage: parseInt(e.target.value) || 0})}
+                                    onFocus={(e) => e.target.select()}
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center text-slate-900 dark:text-white"
+                                />
                                  <Icons.Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                              </div>
                          </div>
                           <div>
                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('carry_on')}</label>
                              <div className="relative">
-                                 <input type="number" value={form.maxCarryOn} onChange={e => setForm({...form, maxCarryOn: parseInt(e.target.value) || 0})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center" />
+                                 <input 
+                                    type="number" 
+                                    value={form.maxCarryOn} 
+                                    onChange={e => setForm({...form, maxCarryOn: parseInt(e.target.value) || 0})}
+                                    onFocus={(e) => e.target.select()}
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center text-slate-900 dark:text-white"
+                                />
                                  <Icons.Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 opacity-60" />
                              </div>
                          </div>
                      </div>
 
-                    <div className="flex items-center justify-between py-3 border-t border-b border-slate-100 dark:border-slate-700 mb-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                            <Icons.Camera className="w-5 h-5 text-slate-800 dark:text-white" />
-                            <span className="font-bold text-slate-900 dark:text-white">{t('manage_photos')}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
-                            <Icons.Check className="w-4 h-4" />
-                            <span>{t('approved')}: {(form.photos || []).length}</span>
-                            <Icons.ChevronRight className="w-4 h-4 text-slate-400 ml-2" />
-                        </div>
-                    </div>
-                    
-                    <div className="p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl mb-4">
-                        <div className="flex justify-between items-center mb-2">
-                            <h5 className="font-bold text-slate-900 dark:text-white">{t('autocancel_offers')}</h5>
-                            <ToggleSwitch checked={form.autoCancelOffers ?? true} onChange={v => setForm({...form, autoCancelOffers: v})} />
-                        </div>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                            {t('autocancel_desc')}
-                        </p>
-                    </div>
-
-                    <div className="py-2 border-t border-slate-100 dark:border-slate-700 mb-4">
-                        <div className="flex items-center gap-3 py-3">
-                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500">JL</div>
-                            <div>
-                                <p className="text-xs text-slate-500 uppercase font-bold">Default driver</p>
-                                <p className="font-bold text-slate-900 dark:text-white">J. Lott</p>
-                            </div>
-                            <div className="ml-auto flex gap-2">
-                                <button className="text-slate-400"><Icons.X className="w-5 h-5" /></button>
-                                <button className="text-slate-400"><Icons.ChevronDown className="w-5 h-5" /></button>
-                            </div>
+                    {/* Features Section */}
+                    <div className="pt-4">
+                        <p className="text-xs font-bold text-slate-500 uppercase mb-3">{t('default_options')}</p>
+                        <div className="flex gap-4 flex-wrap">
+                            {[
+                                { key: 'wifi', icon: Icons.Wifi, label: t('vehicle_features_wifi') },
+                                { key: 'water', icon: Icons.Droplet, label: t('vehicle_features_water') },
+                                { key: 'charger', icon: Icons.Zap, label: t('vehicle_features_charger') },
+                                { key: 'accessible', icon: Icons.Accessibility, label: t('vehicle_features_accessible') },
+                                { key: 'childSeat', icon: Icons.Baby, label: t('vehicle_features_child_seat') }
+                            ].map(feature => (
+                                <button 
+                                    key={feature.key}
+                                    onClick={() => setForm({...form, features: { ...(form.features || {}), [feature.key]: !form.features?.[feature.key as keyof typeof form.features] }})}
+                                    className={`flex flex-col items-center gap-1 ${form.features?.[feature.key as keyof typeof form.features] ? 'text-orange-500' : 'text-slate-300'}`}
+                                >
+                                    <div className={`w-14 h-14 rounded-xl border flex items-center justify-center transition-all ${form.features?.[feature.key as keyof typeof form.features] ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-slate-200 dark:border-slate-700'}`}>
+                                        <feature.icon className="w-6 h-6" />
+                                        {form.features?.[feature.key as keyof typeof form.features] && <div className="absolute top-1 right-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-white flex items-center justify-center"><Icons.Check className="w-2 h-2 text-white" /></div>}
+                                    </div>
+                                    <span className="text-[10px] font-medium">{feature.label}</span>
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -1768,8 +1806,22 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
     const newVehicle: VehicleSettings = { id: Math.random().toString(36).substr(2, 9), make: '', model: '', year: '', color: '', plate: '', maxPassengers: 7, maxLuggage: 5, maxCarryOn: 5, type: 'Van', photos: [], features: { wifi: true, water: true, charger: true, accessible: false, childSeat: false }, autoCancelOffers: true, bufferTimeBefore: 0, bufferTimeAfter: 0, ...vehicleData, };
     handleSaveVehicleData([...myVehicles, newVehicle]); setEditingVehicleId(newVehicle.id); setSettingsView('EDIT_VEHICLE');
   };
-  const handleSaveEditedVehicle = (formData: VehicleSettings) => { handleSaveVehicleData(myVehicles.map((v: VehicleSettings) => v.id === editingVehicleId ? formData : v)); setSettingsView('VEHICLES'); };
-  const handleDeleteVehicle = async (vehicleId: string) => { handleSaveVehicleData(myVehicles.filter(v => v.id !== vehicleId)); setToast({msg: 'Vehicle deleted', type: 'info'}); };
+  const handleSaveEditedVehicle = (formData: VehicleSettings) => { 
+      const updatedVehicles = myVehicles.map((v: VehicleSettings) => v.id === editingVehicleId ? formData : v);
+      handleSaveVehicleData(updatedVehicles); 
+      // Force update Firestore immediately
+      backend.updateDriverVehicles(currentUser.id, updatedVehicles).then(() => {
+          setToast({msg: 'Vehicle updated', type: 'success'});
+      });
+      setSettingsView('VEHICLES'); 
+  };
+  const handleDeleteVehicle = async (vehicleId: string) => { 
+      const updatedVehicles = myVehicles.filter(v => v.id !== vehicleId);
+      handleSaveVehicleData(updatedVehicles); 
+      // Force update Firestore immediately
+      await backend.updateDriverVehicles(currentUser.id, updatedVehicles);
+      setToast({msg: 'Vehicle deleted', type: 'info'}); 
+  };
   const handleUpdateProfile = async (userData: Partial<User>, noExit?: boolean) => { 
       const updatedUser = await backend.adminUpdateUserInfo(currentUser.id, userData); 
       setCurrentUser(updatedUser); 
@@ -1842,8 +1894,8 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
             </SettingsLayout>
           );
           case 'VEHICLES': return <SettingsLayout title={t('vehicles')} onBack={() => setSettingsView('MAIN')}><VehiclesView vehicles={myVehicles} onEdit={(id: string) => { setEditingVehicleId(id); setSettingsView('EDIT_VEHICLE'); }} onAdd={() => setSettingsView('CREATE_VEHICLE')} onDelete={handleDeleteVehicle} drivers={[currentUser, ...(currentUser.subDrivers || [])]} onUpdate={handleUpdateVehicle} /></SettingsLayout>;
-          case 'CREATE_VEHICLE': return <CreateVehicleView onBack={() => setSettingsView('VEHICLES')} onSaveAndContinue={handleCreateAndContinue} />;
-          case 'EDIT_VEHICLE': return <EditVehicleView vehicleId={editingVehicleId} vehicles={myVehicles} onSave={handleSaveEditedVehicle} onClose={() => setSettingsView('VEHICLES')} onDelete={() => { handleDeleteVehicle(editingVehicleId!); setSettingsView('VEHICLES'); setEditingVehicleId(null); }} />;
+          case 'CREATE_VEHICLE': return <CreateVehicleView currentUser={currentUser} onBack={() => setSettingsView('VEHICLES')} onSaveAndContinue={handleCreateAndContinue} />;
+          case 'EDIT_VEHICLE': return <EditVehicleView currentUser={currentUser} vehicleId={editingVehicleId} vehicles={myVehicles} onSave={handleSaveEditedVehicle} onClose={() => setSettingsView('VEHICLES')} onDelete={() => { handleDeleteVehicle(editingVehicleId!); setSettingsView('VEHICLES'); setEditingVehicleId(null); }} />;
           case 'COMPANY': return <SettingsLayout title={t('company_profile')} onBack={() => setSettingsView('MAIN')} footer={<button onClick={handleCompanyProfileSave} className="w-full bg-black text-white font-bold py-3 rounded-xl">{t('save')}</button>}>
             <div className="p-6 space-y-4">
                 <InputField label={t('company_name')} value={companyProfile.name} onChange={(v: string) => setCompanyProfile({...companyProfile, name: v})} placeholder="Company Name" />

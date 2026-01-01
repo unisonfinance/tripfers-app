@@ -13,7 +13,8 @@ import {
     signInWithEmailAndPassword, createUserWithEmailAndPassword, 
     signOut, onAuthStateChanged 
 } from "firebase/auth";
-import { auth, db } from './firebase';
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { auth, db, storage } from './firebase';
 
 // --- HELPER FUNCTIONS ---
 
@@ -434,6 +435,17 @@ class BackendService {
     }
 
     // --- DOCUMENTS ---
+    async uploadFile(path: string, file: File): Promise<string> {
+        try {
+            const storageRef = ref(storage, path);
+            const snapshot = await uploadBytes(storageRef, file);
+            return await getDownloadURL(snapshot.ref);
+        } catch (error) {
+            console.error("Error uploading file:", error);
+            throw error;
+        }
+    }
+
     async uploadDocument(userId: string, type: DocumentType, file: File): Promise<DriverDocument> {
         const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
            const reader = new FileReader();
