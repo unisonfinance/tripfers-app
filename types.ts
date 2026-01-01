@@ -377,6 +377,7 @@ export interface BrandingSettings {
   adminFaviconUrl: string;
   loginFormImageUrl: string;
   mainSiteLogoUrl?: string;
+  logoHeight?: number; // Added for logo size control
   logoMarginLeft?: number;
   logoMarginTop?: number;
   logoMarginBottom?: number;

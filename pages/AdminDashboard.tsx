@@ -501,6 +501,7 @@ const SettingsView = ({
         adminFaviconUrl: brandingSettings?.adminFaviconUrl || '',
         loginFormImageUrl: brandingSettings?.loginFormImageUrl || '',
         mainSiteLogoUrl: brandingSettings?.mainSiteLogoUrl || '',
+        logoHeight: brandingSettings?.logoHeight || 32,
         logoMarginLeft: brandingSettings?.logoMarginLeft || 0,
         logoMarginTop: brandingSettings?.logoMarginTop || 0,
         logoMarginBottom: brandingSettings?.logoMarginBottom || 0
@@ -612,7 +613,16 @@ const SettingsView = ({
                             <p className="text-[10px] text-slate-400 mt-1">Replaces "TripFers" text in the header.</p>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-4 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Logo Height (px)</label>
+                                <input 
+                                    type="number" 
+                                    value={localBranding.logoHeight || 32}
+                                    onChange={e => setLocalBranding({...localBranding, logoHeight: parseInt(e.target.value) || 32})}
+                                    className="w-full p-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-blue-500 dark:text-white"
+                                />
+                            </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Logo Left Margin (px)</label>
                                 <input 

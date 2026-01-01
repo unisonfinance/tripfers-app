@@ -100,8 +100,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
                     <img 
                         src={branding.mainSiteLogoUrl} 
                         alt="Logo" 
-                        className="h-8 w-auto md:hidden object-contain"
+                        className="w-auto object-contain"
                         style={{
+                            height: branding.logoHeight ? `${branding.logoHeight}px` : '32px',
                             marginLeft: branding.logoMarginLeft ? `${branding.logoMarginLeft}px` : undefined,
                             marginTop: branding.logoMarginTop ? `${branding.logoMarginTop}px` : undefined,
                             marginBottom: branding.logoMarginBottom ? `${branding.logoMarginBottom}px` : undefined

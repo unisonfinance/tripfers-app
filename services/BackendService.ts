@@ -610,6 +610,7 @@ class BackendService {
                 adminFaviconUrl: '',
                 loginFormImageUrl: '',
                 mainSiteLogoUrl: '',
+                logoHeight: 32, // Default 32px (h-8)
                 logoMarginLeft: 0,
                 logoMarginTop: 0,
                 logoMarginBottom: 0
@@ -621,6 +622,7 @@ class BackendService {
                 adminFaviconUrl: '', 
                 loginFormImageUrl: '',
                 mainSiteLogoUrl: '',
+                logoHeight: 32,
                 logoMarginLeft: 0,
                 logoMarginTop: 0,
                 logoMarginBottom: 0
