@@ -211,8 +211,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                 <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors z-20"><Icons.X className="w-5 h-5"/></button>
                 
                 <div className="p-8 flex flex-col items-center">
-                    <div className="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-red-500/20 transform rotate-3">
-                         <span className="text-white font-black text-2xl tracking-tighter">UT</span>
+                    {/* Dynamic Logo from Admin Settings */}
+                    <div className="w-24 h-24 mb-6 relative flex items-center justify-center">
+                         <img 
+                            src={logoUrl} 
+                            alt="Logo" 
+                            className="w-full h-full object-contain drop-shadow-xl hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                                // Fallback to text if image fails
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.parentElement!.innerHTML = `<div class="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/20 transform rotate-3"><span class="text-white font-black text-2xl tracking-tighter">UT</span></div>`;
+                            }}
+                         />
                     </div>
                     
                     <h2 className="text-slate-900 dark:text-white text-lg font-bold tracking-tight mb-1">{t('client_driver_portal')}</h2>
