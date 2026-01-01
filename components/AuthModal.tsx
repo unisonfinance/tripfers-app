@@ -95,11 +95,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
              setLoading(false);
              return;
         }
-        if (selectedRole !== UserRole.ADMIN && formData.password !== confirmPassword) {
-            setError(t('error_password_match'));
-            setLoading(false);
-            return;
-        }
     }
 
     try {
