@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, UserRole } from '../types';
+import { User, UserRole, MarketingBannerSettings } from '../types';
 import { Icons } from './Icons';
 import { MembershipModal } from './MembershipModal';
 import { AuthModal } from './AuthModal';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES } from '../i18n';
+import { backend } from '../services/BackendService';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -22,11 +23,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authRole, setAuthRole] = useState<UserRole | null>(null);
+  
+  // Marketing Banner State
+  const [marketingBanner, setMarketingBanner] = useState<MarketingBannerSettings | null>(null);
 
   const { t, i18n } = useTranslation();
 
   const accountRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
+
+  // Fetch Marketing Settings
+  useEffect(() => {
+    backend.getMarketingSettings().then(setMarketingBanner).catch(console.error);
+  }, []);
 
   // Enforce English for Admins (REMOVED: Allowing Admin to switch languages as requested)
   // useEffect(() => {
@@ -192,15 +201,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
           </div>
       </div>
 
-      {/* Mobile CTA */}
-      {isClient && !user?.isMember && (
+      {/* Mobile CTA (Dynamic from Firestore) */}
+      {isClient && !user?.isMember && marketingBanner?.isEnabled && (
          <div className="md:hidden fixed top-16 left-0 right-0 z-40 bg-white dark:bg-slate-800 px-4 py-3 shadow-sm border-b border-slate-100 dark:border-slate-700">
               <button 
                 onClick={() => setShowMembershipModal(true)} 
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-lg shadow-sm text-sm flex items-center justify-center gap-2 transition-colors"
+                className={`w-full font-bold py-2.5 rounded-lg shadow-sm text-sm flex items-center justify-center gap-2 transition-colors ${marketingBanner.backgroundColor || 'bg-emerald-600 hover:bg-emerald-700'}`}
+                style={{ color: marketingBanner.textColor }}
               >
-                 <Icons.Star className="w-4 h-4 fill-white stroke-none" />
-                 {t('become_member')}
+                 <Icons.Star className="w-4 h-4 stroke-none" style={{ fill: marketingBanner.textColor }} />
+                 {marketingBanner.text || t('become_member')}
               </button>
          </div>
       )}

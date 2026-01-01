@@ -301,6 +301,15 @@ export interface PromoCode {
   isActive: boolean;
 }
 
+export interface MarketingBannerSettings {
+  text: string;
+  textColor: string;
+  backgroundColor: string; // Supports gradients (e.g. "bg-gradient-to-r from-blue-500 to-purple-600")
+  buttonText: string;
+  linkUrl: string;
+  isEnabled: boolean;
+}
+
 export interface SupportTicket {
   id: string;
   userId: string;

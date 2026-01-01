@@ -319,26 +319,159 @@ const DisputesView = ({ jobs, onResolve }: any) => (
     </div>
 );
 
-const MarketingView = ({ onUpdate }: any) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-            <h3 className="font-bold text-lg mb-4 dark:text-white">Promo Codes</h3>
-            <button onClick={() => backend.createPromoCode({ code: 'NEW20', value: 20 }).then(onUpdate)} className="w-full bg-black text-white py-3 rounded-xl font-bold mb-4">Create New Code</button>
-            <div className="space-y-2">
-                <div className="flex justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
-                    <span className="font-mono font-bold">WELCOME20</span>
-                    <span className="text-green-600 font-bold">Active</span>
+const MarketingView = ({ onUpdate }: any) => {
+    const [bannerSettings, setBannerSettings] = useState<MarketingBannerSettings | null>(null);
+    const [saved, setSaved] = useState(false);
+
+    useEffect(() => {
+        backend.getMarketingSettings().then(setBannerSettings).catch(console.error);
+    }, []);
+
+    const handleSave = () => {
+        if (bannerSettings) {
+            backend.updateMarketingSettings(bannerSettings).then(() => {
+                setSaved(true);
+                setTimeout(() => setSaved(false), 2000);
+            });
+        }
+    };
+
+    if (!bannerSettings) return <div className="p-8 text-center"><Icons.Loader className="w-8 h-8 animate-spin mx-auto text-slate-400" /></div>;
+
+    return (
+        <div className="space-y-8 animate-fade-in">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                 <div className="flex items-center gap-2 mb-6">
+                    <Icons.Megaphone className="w-6 h-6 text-pink-500" />
+                    <h3 className="font-bold text-lg dark:text-white">Mobile Membership Banner</h3>
+                 </div>
+
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Settings Form */}
+                    <div className="space-y-4">
+                        <label className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg cursor-pointer">
+                            <span className="font-bold text-sm dark:text-white">Enable Banner</span>
+                            <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${bannerSettings.isEnabled ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`} onClick={() => setBannerSettings({...bannerSettings, isEnabled: !bannerSettings.isEnabled})}>
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${bannerSettings.isEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </div>
+                        </label>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Banner Text</label>
+                            <input 
+                                type="text" 
+                                value={bannerSettings.text}
+                                onChange={e => setBannerSettings({...bannerSettings, text: e.target.value})}
+                                className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Text Color (Hex)</label>
+                            <div className="flex gap-2">
+                                <input 
+                                    type="color" 
+                                    value={bannerSettings.textColor}
+                                    onChange={e => setBannerSettings({...bannerSettings, textColor: e.target.value})}
+                                    className="h-10 w-10 rounded cursor-pointer border-0 p-0"
+                                />
+                                <input 
+                                    type="text" 
+                                    value={bannerSettings.textColor}
+                                    onChange={e => setBannerSettings({...bannerSettings, textColor: e.target.value})}
+                                    className="flex-1 p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-mono uppercase"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Background Class / Color</label>
+                            <select 
+                                value={bannerSettings.backgroundColor}
+                                onChange={e => setBannerSettings({...bannerSettings, backgroundColor: e.target.value})}
+                                className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white mb-2"
+                            >
+                                <option value="bg-emerald-600">Emerald Green (Default)</option>
+                                <option value="bg-blue-600">Blue</option>
+                                <option value="bg-red-600">Red</option>
+                                <option value="bg-slate-900">Dark Slate</option>
+                                <option value="bg-gradient-to-r from-blue-600 to-purple-600">Blue-Purple Gradient</option>
+                                <option value="bg-gradient-to-r from-red-500 to-orange-500">Red-Orange Gradient</option>
+                                <option value="bg-gradient-to-r from-emerald-500 to-teal-500">Emerald-Teal Gradient</option>
+                            </select>
+                            <input 
+                                type="text" 
+                                placeholder="Or enter custom Tailwind classes..."
+                                value={bannerSettings.backgroundColor}
+                                onChange={e => setBannerSettings({...bannerSettings, backgroundColor: e.target.value})}
+                                className="w-full p-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white font-mono"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Preview */}
+                    <div className="bg-slate-100 dark:bg-slate-900 rounded-xl p-8 flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                        <div className="w-[320px] bg-white dark:bg-slate-800 rounded-[30px] border-4 border-slate-800 overflow-hidden shadow-2xl relative h-[400px]">
+                            <div className="absolute top-0 inset-x-0 h-6 bg-slate-800 w-1/2 mx-auto rounded-b-xl z-20"></div>
+                            {/* Mock Header */}
+                            <div className="h-14 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 flex items-center px-4 justify-between">
+                                <span className="font-black text-sm">TripFers</span>
+                                <div className="w-6 h-6 rounded-full bg-slate-200"></div>
+                            </div>
+                            
+                            {/* Banner Preview */}
+                            {bannerSettings.isEnabled && (
+                                <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 relative z-10">
+                                    <button 
+                                        className={`w-full font-bold py-2.5 rounded-lg shadow-sm text-[10px] flex items-center justify-center gap-2 transition-colors ${bannerSettings.backgroundColor}`}
+                                        style={{ color: bannerSettings.textColor }}
+                                    >
+                                        <Icons.Star className="w-3 h-3 stroke-none" style={{ fill: bannerSettings.textColor }} />
+                                        {bannerSettings.text}
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Mock Content */}
+                            <div className="p-4 space-y-3 opacity-50 pointer-events-none">
+                                <div className="h-32 bg-slate-100 rounded-xl"></div>
+                                <div className="h-10 bg-slate-100 rounded-lg w-3/4"></div>
+                                <div className="h-10 bg-slate-100 rounded-lg w-1/2"></div>
+                            </div>
+                        </div>
+                    </div>
+                 </div>
+
+                 <div className="mt-8 flex justify-end items-center gap-4">
+                    {saved && <span className="text-green-600 font-bold text-sm animate-fade-in flex items-center gap-1"><Icons.Check className="w-4 h-4"/> Saved</span>}
+                    <button onClick={handleSave} className="bg-pink-600 hover:bg-pink-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-pink-900/20 active:scale-95 transition-all">
+                        Save Changes
+                    </button>
+                 </div>
+            </div>
+
+            {/* Existing Sections */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-60 hover:opacity-100 transition-opacity">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <h3 className="font-bold text-lg mb-4 dark:text-white">Promo Codes</h3>
+                    <button onClick={() => backend.createPromoCode({ code: 'NEW20', value: 20 }).then(onUpdate)} className="w-full bg-black text-white py-3 rounded-xl font-bold mb-4">Create New Code</button>
+                    <div className="space-y-2">
+                        <div className="flex justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                            <span className="font-mono font-bold">WELCOME20</span>
+                            <span className="text-green-600 font-bold">Active</span>
+                        </div>
+                    </div>
+                </div>
+                 <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <h3 className="font-bold text-lg mb-4 dark:text-white">Campaigns</h3>
+                    <div className="p-8 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+                        Create your first email campaign
+                    </div>
                 </div>
             </div>
         </div>
-         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-            <h3 className="font-bold text-lg mb-4 dark:text-white">Campaigns</h3>
-            <div className="p-8 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
-                Create your first email campaign
-            </div>
-        </div>
-    </div>
-);
+    );
+};
 
 const BroadcastView = () => (
     <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">

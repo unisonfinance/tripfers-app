@@ -2,7 +2,7 @@ import {
     User, UserRole, Job, JobStatus, Bid, IntegrationsConfig, UserStatus, 
     VehicleSettings, PricingConfig, SupportTicket, Transaction, AuditLog, 
     SystemNotification, ChatMessage, PromoCode, AdminBadgeSettings, 
-    PricingThresholds, SupportSettings, DocumentType, DriverDocument, BrandingSettings 
+    PricingThresholds, SupportSettings, DocumentType, DriverDocument, BrandingSettings, MarketingBannerSettings 
 } from '../types';
 import { 
     collection, doc, setDoc, getDoc, updateDoc, deleteDoc, 
@@ -662,6 +662,45 @@ class BackendService {
     }
     async getTransactions() { return this.transactions; }
     async getNotifications() { return this.notifications; }
+    // Marketing
+    async getMarketingSettings(): Promise<MarketingBannerSettings> {
+        try {
+            const docRef = doc(db, 'settings', 'marketing');
+            const snap = await getDoc(docRef);
+            if (snap.exists()) return snap.data() as MarketingBannerSettings;
+            
+            // Default settings if not found
+            return {
+                text: 'Become a Member — Faster Responses',
+                textColor: '#FFFFFF',
+                backgroundColor: 'bg-emerald-600', // Default class
+                buttonText: 'Join Now',
+                linkUrl: '#',
+                isEnabled: true
+            };
+        } catch (error) {
+            console.error("Failed to fetch marketing settings", error);
+             return {
+                text: 'Become a Member — Faster Responses',
+                textColor: '#FFFFFF',
+                backgroundColor: 'bg-emerald-600',
+                buttonText: 'Join Now',
+                linkUrl: '#',
+                isEnabled: true
+            };
+        }
+    }
+
+    async updateMarketingSettings(settings: MarketingBannerSettings): Promise<void> {
+        try {
+             const docRef = doc(db, 'settings', 'marketing');
+             await setDoc(docRef, settings, { merge: true });
+        } catch (error) {
+            console.error("Failed to update marketing settings", error);
+            throw error;
+        }
+    }
+
     async getPromoCodes() { return this.promoCodes; }
     async createPromoCode(p: Partial<PromoCode>) { return p as PromoCode; }
     
