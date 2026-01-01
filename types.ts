@@ -366,4 +366,5 @@ export interface SupportSettings {
 export interface BrandingSettings {
   mainFaviconUrl: string;
   adminFaviconUrl: string;
+  loginFormImageUrl: string;
 }

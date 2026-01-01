@@ -607,11 +607,12 @@ class BackendService {
             }
             return {
                 mainFaviconUrl: '',
-                adminFaviconUrl: ''
+                adminFaviconUrl: '',
+                loginFormImageUrl: ''
             };
         } catch (error) {
             console.warn("Failed to fetch branding:", error);
-            return { mainFaviconUrl: '', adminFaviconUrl: '' };
+            return { mainFaviconUrl: '', adminFaviconUrl: '', loginFormImageUrl: '' };
         }
     }
 

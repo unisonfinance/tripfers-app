@@ -365,7 +365,8 @@ const SettingsView = ({
 }) => {
     const [localBranding, setLocalBranding] = useState<BrandingSettings>({
         mainFaviconUrl: brandingSettings?.mainFaviconUrl || '',
-        adminFaviconUrl: brandingSettings?.adminFaviconUrl || ''
+        adminFaviconUrl: brandingSettings?.adminFaviconUrl || '',
+        loginFormImageUrl: brandingSettings?.loginFormImageUrl || ''
     });
     const [showSaved, setShowSaved] = useState(false);
 
@@ -438,6 +439,23 @@ const SettingsView = ({
                                     placeholder="https://example.com/admin-favicon.png"
                                 />
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Login Form Image URL</label>
+                            <div className="flex gap-2 items-center">
+                                {localBranding.loginFormImageUrl && (
+                                    <img src={localBranding.loginFormImageUrl} alt="Preview" className="w-9 h-9 p-1 bg-white rounded border border-slate-200 object-contain" />
+                                )}
+                                <input 
+                                    type="text" 
+                                    value={localBranding.loginFormImageUrl || ''}
+                                    onChange={e => setLocalBranding({...localBranding, loginFormImageUrl: e.target.value})}
+                                    className="flex-1 p-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-blue-500 dark:text-white"
+                                    placeholder="https://example.com/login-logo.png"
+                                />
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-1">Image to display at the top of the Login/Register form.</p>
                         </div>
 
                         <div className="flex justify-start pt-2 items-center gap-4 relative">

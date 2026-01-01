@@ -23,11 +23,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
   
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  // Hardcoded logo as requested - prevents backend fetch crashes
-  const logoUrl = '/favicon.png'; 
+  // Dynamic logo fetching
+  const [logoUrl, setLogoUrl] = useState('/favicon.png');
 
   useEffect(() => {
     if (isOpen) {
+        // Fetch branding logo from backend settings
+        backend.getBrandingSettings().then(settings => {
+             // Prefer Login Form Image, fallback to Main Favicon, then default
+             if (settings.loginFormImageUrl) {
+                 setLogoUrl(settings.loginFormImageUrl);
+             } else if (settings.mainFaviconUrl) {
+                 setLogoUrl(settings.mainFaviconUrl);
+             }
+        }).catch(err => console.warn('Failed to load branding', err));
+
         if (selectedRole === UserRole.ADMIN) {
             setFormData({
                 email: '',
