@@ -7,6 +7,7 @@ import { AuthModal } from './AuthModal';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES } from '../i18n';
 import { backend } from '../services/BackendService';
+import { Link } from 'react-router-dom'; // Import Link
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -95,22 +96,24 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
              )}
 
              <div className="flex items-center gap-2">
-                {/* Logo Text */}
-                {branding?.mainSiteLogoUrl ? (
-                    <img 
-                        src={branding.mainSiteLogoUrl} 
-                        alt="Logo" 
-                        className="w-auto object-contain"
-                        style={{
-                            height: branding.logoHeight ? `${branding.logoHeight}px` : '32px',
-                            marginLeft: branding.logoMarginLeft ? `${branding.logoMarginLeft}px` : undefined,
-                            marginTop: branding.logoMarginTop ? `${branding.logoMarginTop}px` : undefined,
-                            marginBottom: branding.logoMarginBottom ? `${branding.logoMarginBottom}px` : undefined
-                        }}
-                    />
-                ) : (
-                    <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white md:hidden">TripFers</span>
-                )}
+                {/* Logo Text - Wrapped in Link to redirect to Home */}
+                <Link to="/" className="flex items-center gap-2">
+                    {branding?.mainSiteLogoUrl ? (
+                        <img 
+                            src={branding.mainSiteLogoUrl} 
+                            alt="Logo" 
+                            className="w-auto object-contain"
+                            style={{
+                                height: branding.logoHeight ? `${branding.logoHeight}px` : '32px',
+                                marginLeft: branding.logoMarginLeft ? `${branding.logoMarginLeft}px` : undefined,
+                                marginTop: branding.logoMarginTop ? `${branding.logoMarginTop}px` : undefined,
+                                marginBottom: branding.logoMarginBottom ? `${branding.logoMarginBottom}px` : undefined
+                            }}
+                        />
+                    ) : (
+                        <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white md:hidden">TripFers</span>
+                    )}
+                </Link>
 
                 {user?.isMember && (
                     <span className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">

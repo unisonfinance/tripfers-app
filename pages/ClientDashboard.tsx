@@ -697,9 +697,6 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
         );
     };
 
-  if (currentView === 'support') return <SupportView />;
-  if (currentView === 'settings') return <SettingsView user={user!} onLogout={handleLogout} onLoginRequest={() => setShowAuthModal(true)} />;
-
   return (
     <div className={`relative min-h-screen pb-20 bg-slate-50 dark:bg-slate-900 ${currentView === 'book' ? '' : 'p-4 md:p-8'}`}>
       <style>{`
