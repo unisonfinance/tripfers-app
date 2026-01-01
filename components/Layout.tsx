@@ -84,7 +84,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
              )}
 
              <div className="flex items-center gap-2">
-                {/* Logo Removed as requested */}
+                {/* Logo Text */}
+                <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white md:hidden">TripFers</span>
+
                 {user?.isMember && (
                     <span className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
                         <Icons.Star className="w-3 h-3 fill-emerald-700 dark:fill-emerald-400 stroke-none" />
