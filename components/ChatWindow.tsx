@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Icons } from './Icons';
 import { ChatMessage, User } from '../types';
-import { mockBackend } from '../services/mockBackend';
+import { backend } from '../services/BackendService';
 import { useTranslation } from 'react-i18next';
 
 interface ChatWindowProps {
@@ -73,7 +73,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ jobId, currentUser, othe
   const { t } = useTranslation();
 
   const loadMessages = async () => {
-    const jobs = await mockBackend.getJobs(currentUser.role, currentUser.id);
+    const jobs = await backend.getJobs(currentUser.role, currentUser.id);
     const job = jobs.find(j => j.id === jobId);
     if (job && job.messages) {
       setMessages(job.messages);
@@ -110,13 +110,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ jobId, currentUser, othe
     e.preventDefault();
     if (!text.trim()) return;
     
-    await mockBackend.sendMessage(jobId, currentUser.id, text);
+    await backend.sendMessage(jobId, currentUser.id, text);
     setText('');
     loadMessages();
   };
 
   const handleSendEmoji = async (emoji: string) => {
-    await mockBackend.sendMessage(jobId, currentUser.id, emoji);
+    await backend.sendMessage(jobId, currentUser.id, emoji);
     loadMessages();
     setShowEmojiPicker(false); // Close picker after sending emoji
   };

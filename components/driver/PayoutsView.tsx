@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../../types';
 import { Icons } from '../Icons';
-import { mockBackend } from '../../services/mockBackend';
+import { backend } from '../../services/BackendService';
 import { ConfirmationModal } from '../ConfirmationModal';
+import { useTranslation } from 'react-i18next';
 
 interface PayoutsViewProps {
   currentUser: User;
@@ -12,8 +13,9 @@ interface PayoutsViewProps {
 }
 
 export const PayoutsView: React.FC<PayoutsViewProps> = ({ currentUser, onUpdate, onBack, setHasUnsavedChanges }) => {
+  const { t } = useTranslation();
   const [billingPeriod, setBillingPeriod] = useState('3 days');
-  const [financeEmail, setFinanceEmail] = useState('finance@gettransfer.com');
+  const [financeEmail, setFinanceEmail] = useState('finance@tripfers.com');
   
   // Local state for form
   const [localPaypalEmail, setLocalPaypalEmail] = useState(currentUser.paypalEmail || '');
@@ -23,8 +25,8 @@ export const PayoutsView: React.FC<PayoutsViewProps> = ({ currentUser, onUpdate,
 
   useEffect(() => {
       const loadSettings = async () => {
-          if (mockBackend.getSupportSettings) {
-              const settings = await mockBackend.getSupportSettings();
+          if (backend.getSupportSettings) {
+              const settings = await backend.getSupportSettings();
               if (settings && settings.financeEmail) {
                   setFinanceEmail(settings.financeEmail);
               }
@@ -77,7 +79,7 @@ export const PayoutsView: React.FC<PayoutsViewProps> = ({ currentUser, onUpdate,
     if (status === 'APPROVED') {
         return (
             <span className="flex items-center gap-1.5 text-green-600 font-bold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg text-sm">
-                <Icons.Check className="w-4 h-4" /> Approved
+                <Icons.Check className="w-4 h-4" /> {t('status_approved')}
             </span>
         );
     }
@@ -85,7 +87,7 @@ export const PayoutsView: React.FC<PayoutsViewProps> = ({ currentUser, onUpdate,
     if (status === 'PENDING') {
         return (
             <span className="flex items-center gap-1.5 text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg text-sm">
-                <Icons.Clock className="w-4 h-4" /> Verifying...
+                <Icons.Clock className="w-4 h-4" /> {t('status_verifying')}
             </span>
         );
     }
@@ -93,14 +95,14 @@ export const PayoutsView: React.FC<PayoutsViewProps> = ({ currentUser, onUpdate,
     if (status === 'REJECTED') {
          return (
             <span className="flex items-center gap-1.5 text-red-600 font-bold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg text-sm">
-                <Icons.X className="w-4 h-4" /> Rejected
+                <Icons.X className="w-4 h-4" /> {t('status_rejected')}
             </span>
         );
     }
 
     return (
         <span className="flex items-center gap-1.5 text-slate-500 font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg text-sm">
-            Not Set
+            {t('not_set')}
         </span>
     );
   };
@@ -112,7 +114,7 @@ export const PayoutsView: React.FC<PayoutsViewProps> = ({ currentUser, onUpdate,
             <button onClick={handleBack} className="p-2 -ml-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
                 <Icons.ArrowLeft className="w-6 h-6 text-slate-900 dark:text-white" />
             </button>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Payment details</h1>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">{t('payment_details')}</h1>
         </div>
 
         <div className="p-4 space-y-6 max-w-lg mx-auto">
@@ -122,13 +124,13 @@ export const PayoutsView: React.FC<PayoutsViewProps> = ({ currentUser, onUpdate,
                 <div className="p-5">
                     <div className="flex justify-between items-start mb-6">
                         <div>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Turnover for the previous 12 months</p>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">{t('turnover_12_months')}</p>
                             <p className="text-2xl font-bold text-slate-900 dark:text-white">
                                 {currentUser.totalEarnings ? `US$${currentUser.totalEarnings.toFixed(2)}` : 'US$0.00'}
                             </p>
                         </div>
                         <div className="flex flex-col items-end">
-                             <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Rating</p>
+                             <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">{t('rating')}</p>
                              <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg">
                                 <span className="font-bold text-slate-900 dark:text-white">
                                     {currentUser.rating ? currentUser.rating.toFixed(1) : '0.0'}
@@ -142,25 +144,25 @@ export const PayoutsView: React.FC<PayoutsViewProps> = ({ currentUser, onUpdate,
 
                     <div className="space-y-4">
                         <div>
-                            <h3 className="font-bold text-slate-900 dark:text-white mb-2">Commission</h3>
+                            <h3 className="font-bold text-slate-900 dark:text-white mb-2">{t('commission')}</h3>
                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-slate-500 dark:text-slate-400">Current commission</span>
+                                <span className="text-slate-500 dark:text-slate-400">{t('current_commission')}</span>
                                 <span className="font-bold text-slate-900 dark:text-white">29.5%</span>
                             </div>
                         </div>
 
                         <div>
-                            <h3 className="font-bold text-slate-900 dark:text-white mb-2">Special commission</h3>
+                            <h3 className="font-bold text-slate-900 dark:text-white mb-2">{t('special_commission')}</h3>
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between items-center">
                                     <div className="flex items-center gap-1">
-                                        <span className="text-slate-500 dark:text-slate-400">Urgent</span>
+                                        <span className="text-slate-500 dark:text-slate-400">{t('urgent')}</span>
                                         <Icons.HelpCircle className="w-4 h-4 text-slate-300" />
                                     </div>
                                     <span className="font-bold text-slate-900 dark:text-white">5%</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-slate-500 dark:text-slate-400">Delivery</span>
+                                    <span className="text-slate-500 dark:text-slate-400">{t('delivery')}</span>
                                     <span className="font-bold text-slate-900 dark:text-white">10%</span>
                                 </div>
                             </div>
@@ -168,13 +170,13 @@ export const PayoutsView: React.FC<PayoutsViewProps> = ({ currentUser, onUpdate,
                     </div>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-900/50 p-4 border-t border-slate-100 dark:border-slate-700">
-                    <button className="text-slate-900 dark:text-white font-bold text-sm underline decoration-slate-300 underline-offset-4">Calculation rules</button>
+                    <button className="text-slate-900 dark:text-white font-bold text-sm underline decoration-slate-300 underline-offset-4">{t('calculation_rules')}</button>
                 </div>
             </div>
 
             {/* Billing Period */}
             <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Current billing period</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">{t('current_billing_period')}</label>
                 <div className="relative">
                     <select 
                         value={billingPeriod}
@@ -188,20 +190,20 @@ export const PayoutsView: React.FC<PayoutsViewProps> = ({ currentUser, onUpdate,
                     </select>
                     <Icons.ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                 </div>
-                <p className="text-xs text-slate-400 mt-2">Current payment period: working days: up to 30</p>
+                <p className="text-xs text-slate-400 mt-2">{t('payment_period_hint')}</p>
             </div>
 
             {/* Bank Details */}
             <div>
-                <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Bank details</h3>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-4">{t('bank_details')}</h3>
                 
                 <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-4">
                     <div className="flex justify-between items-center">
-                        <span className="text-slate-500 dark:text-slate-400">Verification status</span>
+                        <span className="text-slate-500 dark:text-slate-400">{t('verification_status')}</span>
                         {renderStatusBadge()}
                     </div>
                      <div className="flex justify-between items-center">
-                        <span className="text-slate-500 dark:text-slate-400">Outpayment currency</span>
+                        <span className="text-slate-500 dark:text-slate-400">{t('outpayment_currency')}</span>
                         <span className="font-bold text-slate-900 dark:text-white">AUD</span>
                     </div>
                 </div>
@@ -209,18 +211,18 @@ export const PayoutsView: React.FC<PayoutsViewProps> = ({ currentUser, onUpdate,
 
             {/* PayPal */}
             <div>
-                 <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Email of your PayPal account</h3>
+                 <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-4">{t('paypal_email_label')}</h3>
                  <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-1 flex items-center">
                     <input 
                         type="email" 
                         value={localPaypalEmail} 
                         onChange={handleEmailChange}
                         className="w-full bg-transparent p-4 font-normal text-slate-900 dark:text-white outline-none placeholder:text-slate-300"
-                        placeholder="Enter PayPal email"
+                        placeholder={t('enter_paypal_email')}
                     />
                  </div>
                  <p className="text-xs text-slate-400 mt-2 ml-1">
-                    Changing this email will trigger a new verification request.
+                    {t('paypal_change_hint')}
                  </p>
             </div>
 
@@ -235,7 +237,7 @@ export const PayoutsView: React.FC<PayoutsViewProps> = ({ currentUser, onUpdate,
                             : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                     }`}
                 >
-                    {isDirty ? 'Save Details' : 'No Changes'}
+                    {isDirty ? t('save_details') : t('no_changes')}
                 </button>
             </div>
 
@@ -244,23 +246,23 @@ export const PayoutsView: React.FC<PayoutsViewProps> = ({ currentUser, onUpdate,
 
              {/* Footer Info */}
              <div className="text-center pt-8 pb-8">
-                <p className="font-bold text-slate-900 dark:text-white mb-4">You receive payments via</p>
+                <p className="font-bold text-slate-900 dark:text-white mb-4">{t('receive_payments_via')}</p>
                 <div className="flex justify-center mb-8">
                     <Icons.PayPal className="h-8 w-auto text-[#003087]" /> 
                 </div>
 
                 <p className="text-sm text-slate-500 max-w-xs mx-auto leading-relaxed">
-                    To change the payment information, please contact: <a href={`mailto:${financeEmail}`} className="text-slate-900 dark:text-white font-bold underline">{financeEmail}</a>
+                    {t('contact_finance_hint')} <a href={`mailto:${financeEmail}`} className="text-slate-900 dark:text-white font-bold underline">{financeEmail}</a>
                 </p>
              </div>
 
             {/* Unsaved Changes Modal */}
             {showUnsavedModal && (
                 <ConfirmationModal
-                    title="Unsaved Changes"
-                    message="You have unsaved changes. Are you sure you want to leave without saving?"
-                    confirmText="Discard Changes"
-                    cancelText="Keep Editing"
+                    title={t('unsaved_changes_title')}
+                    message={t('unsaved_changes_message')}
+                    confirmText={t('discard_changes')}
+                    cancelText={t('keep_editing')}
                     onConfirm={confirmDiscard}
                     onCancel={() => setShowUnsavedModal(false)}
                 />
@@ -271,7 +273,7 @@ export const PayoutsView: React.FC<PayoutsViewProps> = ({ currentUser, onUpdate,
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[120] animate-fade-in">
                     <div className="bg-green-600 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-2 font-bold text-sm cursor-pointer" onClick={() => setShowSuccessToast(false)}>
                         <Icons.Check className="w-5 h-5" />
-                        Everything has been saved
+                        {t('everything_saved')}
                     </div>
                 </div>
             )}

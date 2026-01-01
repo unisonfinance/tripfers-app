@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { User, Job, JobStatus, VehicleSettings, DriverFilter, VehiclePhoto, CompanyProfile, UserStatus, UserRole, DriverDocument, DocumentType, SubDriver, PricingThresholds } from '../types';
-import { mockBackend } from '../services/mockBackend';
+import { backend } from '../services/BackendService';
 import { Icons } from '../components/Icons';
 import { Toast } from '../components/Toast';
 import { ChatWindow } from '../components/ChatWindow';
@@ -360,12 +360,12 @@ const DriverCard = ({ driver, isMain, onSave, onDelete, onExpand, isExpanded }: 
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
-                        <InputField label={t('name')} value={form.name} onChange={(v: string) => setForm({...form, name: v})} placeholder="Enter first name" />
-                        <InputField label={t('surname')} value={form.surname} onChange={(v: string) => setForm({...form, surname: v})} placeholder="Enter last name" />
+                        <InputField label={t('name')} value={form.name} onChange={(v: string) => setForm({...form, name: v})} placeholder={t('enter_first_name')} />
+                        <InputField label={t('surname')} value={form.surname} onChange={(v: string) => setForm({...form, surname: v})} placeholder={t('enter_last_name')} />
                     </div>
-                    <InputField label={t('email')} value={form.email} onChange={(v: string) => setForm({...form, email: v})} placeholder="name@company.com" />
-                    <InputField label={t('phone_number')} value={form.phone} onChange={(v: string) => setForm({...form, phone: v})} placeholder="+1 (555) 000-0000" />
-                    <InputField label={t('placeholder_country')} value={form.country} onChange={(v: string) => setForm({...form, country: v})} placeholder="Country" />
+                    <InputField label={t('email')} value={form.email} onChange={(v: string) => setForm({...form, email: v})} placeholder={t('enter_email_placeholder')} />
+                    <InputField label={t('phone_number')} value={form.phone} onChange={(v: string) => setForm({...form, phone: v})} placeholder={t('enter_phone_placeholder')} />
+                    <InputField label={t('placeholder_country')} value={form.country} onChange={(v: string) => setForm({...form, country: v})} placeholder={t('placeholder_country')} />
                     
                     <div className="flex gap-3 mt-6">
                         <button onClick={() => onSave(form)} className="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-colors">
@@ -405,7 +405,7 @@ const ProfileSettingsView = ({ currentUser, onSave, onBack }: any) => {
     return (
         <SettingsLayout title={t('driver_profile')} onBack={onBack}>
             <div className="p-4 pb-24 relative">
-                <p className="text-xs font-bold text-slate-500 uppercase mb-4 ml-1">Account Owner</p>
+                <p className="text-xs font-bold text-slate-500 uppercase mb-4 ml-1">{t('account_owner')}</p>
                 <DriverCard 
                     driver={mainDriver} 
                     isMain={true} 
@@ -630,35 +630,35 @@ const ServiceZonesView = ({ onClose, onSave, initialZones }: any) => {
     };
 
     return (
-        <SettingsLayout title="Your operating area" onBack={onClose} disableScroll={true}>
+        <SettingsLayout title={t('operating_area')} onBack={onClose} disableScroll={true}>
             <div className="relative h-full w-full flex flex-col">
                 {/* TOOLBAR (Floating Top Center) */}
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 pointer-events-auto">
                     <button 
                         onClick={() => setActiveTool('move')} 
                         className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-md ${activeTool === 'move' ? 'bg-[#F97316] text-white scale-110' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                        title="Move Map"
+                        title={t('move_map')}
                     >
                         <Icons.Move className="w-6 h-6" />
                     </button>
                     <button 
                         onClick={() => setActiveTool('poly')} 
                         className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-md ${activeTool === 'poly' ? 'bg-[#F97316] text-white scale-110' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                        title="Draw Polygon"
+                        title={t('draw_polygon')}
                     >
                         <Icons.PenTool className="w-6 h-6" />
                     </button>
                     <button 
                         onClick={() => setActiveTool('circle')} 
                         className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-md ${activeTool === 'circle' ? 'bg-[#F97316] text-white scale-110' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                        title="Draw Circle"
+                        title={t('draw_circle')}
                     >
                         <Icons.CircleDot className="w-6 h-6" />
                     </button>
                     <button 
                         onClick={handleDelete} 
                         className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-md bg-white text-red-500 hover:bg-red-50 border border-slate-200`}
-                        title="Delete Area"
+                        title={t('delete_area')}
                     >
                         <Icons.Trash className="w-6 h-6" />
                     </button>
@@ -676,7 +676,7 @@ const ServiceZonesView = ({ onClose, onSave, initialZones }: any) => {
                         className={`w-full py-4 rounded-full font-bold uppercase tracking-wide text-sm shadow-lg transition-all mx-auto block ${hasShape ? 'bg-[#22C55E] hover:bg-[#16A34A] text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
                         disabled={!hasShape}
                     >
-                        SAVE
+                        {t('save')}
                     </button>
                 </div>
 
@@ -687,8 +687,8 @@ const ServiceZonesView = ({ onClose, onSave, initialZones }: any) => {
                             <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
                                 <Icons.Check className="w-8 h-8 text-green-600 dark:text-green-400" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Saved!</h3>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm">Your operating area has been updated.</p>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">{t('saved_title')}</h3>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">{t('saved_area_msg')}</p>
                         </div>
                     </div>
                 )}
@@ -701,22 +701,22 @@ const ServiceZonesView = ({ onClose, onSave, initialZones }: any) => {
                                 <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm ring-4 ring-red-50 dark:ring-red-900/10">
                                     <Icons.Trash className="w-10 h-10 text-red-500" />
                                 </div>
-                                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Delete Area?</h3>
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">{t('delete_area_title')}</h3>
                                 <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed text-sm">
-                                    Are you sure you want to delete this operating area? This action cannot be undone.
+                                    {t('delete_area_msg')}
                                 </p>
                                 <div className="flex flex-col gap-3">
                                     <button
                                         onClick={confirmDelete}
                                         className="w-full py-4 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-lg shadow-lg shadow-red-500/30 transition-all active:scale-[0.98]"
                                     >
-                                        Yes, Delete it
+                                        {t('confirm_delete')}
                                     </button>
                                     <button
                                         onClick={() => setShowDeleteConfirm(false)}
                                         className="w-full py-4 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                                     >
-                                        Cancel
+                                        {t('cancel')}
                                     </button>
                                 </div>
                             </div>
@@ -935,7 +935,7 @@ const VehiclesView = ({ vehicles, onEdit, onAdd, onDelete, drivers, onUpdate }: 
                             </div>
                             
                             <div className="mb-2">
-                                 <span className="font-bold text-sm text-slate-900 dark:text-white">{v.type}</span>
+                                 <span className="font-bold text-sm text-slate-900 dark:text-white">{t('vehicle_' + v.type.toLowerCase())}</span>
                             </div>
 
                             <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
@@ -955,15 +955,15 @@ const VehiclesView = ({ vehicles, onEdit, onAdd, onDelete, drivers, onUpdate }: 
                     {expandedId === v.id && (
                         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 animate-slide-up" onClick={e => e.stopPropagation()}>
                             <div className="mb-4">
-                                <p className="text-xs font-bold text-slate-500 uppercase mb-3">Default options</p>
+                                <p className="text-xs font-bold text-slate-500 uppercase mb-3">{t('default_options')}</p>
                                 <div className="flex gap-4 overflow-x-auto pb-2">
                                     {/* Features Icons - Toggleable */}
                                     {[
-                                        { key: 'wifi', icon: Icons.Wifi, label: 'Free Wi-Fi' },
-                                        { key: 'water', icon: Icons.Droplet, label: 'Water' },
-                                        { key: 'charger', icon: Icons.Zap, label: 'Charger' },
-                                        { key: 'accessible', icon: Icons.Accessibility, label: 'Disabled' },
-                                        { key: 'childSeat', icon: Icons.Baby, label: 'Child Seat' }
+                                        { key: 'wifi', icon: Icons.Wifi, label: t('vehicle_features_wifi') },
+                                        { key: 'water', icon: Icons.Droplet, label: t('vehicle_features_water') },
+                                        { key: 'charger', icon: Icons.Zap, label: t('vehicle_features_charger') },
+                                        { key: 'accessible', icon: Icons.Accessibility, label: t('vehicle_features_accessible') },
+                                        { key: 'childSeat', icon: Icons.Baby, label: t('vehicle_features_child_seat') }
                                     ].map(feature => (
                                         <button 
                                             key={feature.key}
@@ -986,27 +986,27 @@ const VehiclesView = ({ vehicles, onEdit, onAdd, onDelete, drivers, onUpdate }: 
                             >
                                 <div className="flex items-center gap-3">
                                     <Icons.Camera className="w-5 h-5 text-slate-800 dark:text-white" />
-                                    <span className="font-bold text-slate-900 dark:text-white">Vehicle photos</span>
+                                    <span className="font-bold text-slate-900 dark:text-white">{t('manage_photos')}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
                                     <Icons.Check className="w-4 h-4" />
-                                    <span>Approved: {v.photos?.filter(p => p.status === 'APPROVED').length || 0}</span>
+                                    <span>{t('approved')}: {v.photos?.filter(p => p.status === 'APPROVED').length || 0}</span>
                                     <Icons.ChevronRight className="w-4 h-4 text-slate-400 ml-2" />
                                 </div>
                             </div>
 
                             {/* Default Driver Dropdown */}
                             <div className="mb-4">
-                                <p className="text-xs font-bold text-slate-500 uppercase mb-2">Default Driver</p>
+                                <p className="text-xs font-bold text-slate-500 uppercase mb-2">{t('default_driver')}</p>
                                 <div className="relative">
                                     <select 
                                         value={v.defaultDriverId || ''}
                                         onChange={(e) => handleDefaultDriverChange(v, e.target.value)}
                                         className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none appearance-none font-bold text-slate-900 dark:text-white"
                                     >
-                                        <option value="">Select a driver...</option>
+                                        <option value="">{t('select_driver')}</option>
                                         {drivers?.map((d: any) => (
-                                            <option key={d?.id || Math.random()} value={d?.id}>{d?.name} {d?.surname} {d?.id && drivers?.[0]?.id && d.id === drivers[0].id ? '(Main)' : ''}</option>
+                                            <option key={d?.id || Math.random()} value={d?.id}>{d?.name} {d?.surname} {d?.id && drivers?.[0]?.id && d.id === drivers[0].id ? t('main_driver_suffix') : ''}</option>
                                         ))}
                                     </select>
                                     <Icons.ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -1014,14 +1014,14 @@ const VehiclesView = ({ vehicles, onEdit, onAdd, onDelete, drivers, onUpdate }: 
                             </div>
                             
                             <div className="p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl">
-                                <h5 className="font-bold text-slate-900 dark:text-white mb-2">Autocancel offers</h5>
+                                <h5 className="font-bold text-slate-900 dark:text-white mb-2">{t('autocancel_offers')}</h5>
                                 <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                                    When your offer is selected by a passenger, all other offers for the rides scheduled at the same time will be canceled automatically.
+                                    {t('autocancel_desc')}
                                 </p>
                             </div>
 
                             <button onClick={() => onDelete(v.id)} className="w-full mt-4 py-3 border border-red-200 text-red-600 rounded-xl font-bold hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center gap-2">
-                                <Icons.Trash className="w-4 h-4" /> Delete Vehicle
+                                <Icons.Trash className="w-4 h-4" /> {t('delete_vehicle')}
                             </button>
                         </div>
                     )}
@@ -1106,7 +1106,7 @@ const CreateVehicleView = ({ onBack, onSaveAndContinue }: any) => {
             <div className="p-6 space-y-6">
                 {/* Image Upload Section */}
                 <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-3">Vehicle Photos (Max 6) - Drag to reorder</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-3">{t('manage_photos')} (Max 6) - {t('drag_to_reorder')}</label>
                     <div className="grid grid-cols-3 gap-3">
                         {form.photos.map((photo, idx) => (
                             <div 
@@ -1121,13 +1121,13 @@ const CreateVehicleView = ({ onBack, onSaveAndContinue }: any) => {
                                 <button onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors">
                                     <Icons.X className="w-3 h-3" />
                                 </button>
-                                {idx === 0 && <div className="absolute bottom-0 left-0 right-0 bg-green-600/90 text-white text-[10px] text-center py-1 font-bold backdrop-blur-sm">MAIN PHOTO</div>}
+                                {idx === 0 && <div className="absolute bottom-0 left-0 right-0 bg-green-600/90 text-white text-[10px] text-center py-1 font-bold backdrop-blur-sm">{t('main_photo')}</div>}
                             </div>
                         ))}
                         {form.photos.length < 6 && (
                             <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
                                 <Icons.Plus className="w-6 h-6 mb-1" />
-                                <span className="text-[10px] font-bold uppercase">Add Photo</span>
+                                <span className="text-[10px] font-bold uppercase">{t('add_photo')}</span>
                                 <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
                             </label>
                         )}
@@ -1137,7 +1137,7 @@ const CreateVehicleView = ({ onBack, onSaveAndContinue }: any) => {
                 <div className="space-y-4">
                     {/* Default Options (Features) */}
                     <div>
-                        <p className="text-xs font-bold text-slate-500 uppercase mb-3">Default options</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase mb-3">{t('default_options')}</p>
                         <div className="flex gap-4">
                             <button 
                                 onClick={() => setForm(prev => ({ ...prev, features: { ...prev.features, wifi: !prev.features?.wifi } }))}
@@ -1147,7 +1147,7 @@ const CreateVehicleView = ({ onBack, onSaveAndContinue }: any) => {
                                     <Icons.Wifi className="w-6 h-6" />
                                     {form.features?.wifi && <div className="absolute top-1 right-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-white flex items-center justify-center"><Icons.Check className="w-2 h-2 text-white" /></div>}
                                 </div>
-                                <span className="text-[10px] font-medium">Free Wi-Fi</span>
+                                <span className="text-[10px] font-medium">{t('vehicle_features_wifi')}</span>
                             </button>
 
                             <button 
@@ -1158,7 +1158,7 @@ const CreateVehicleView = ({ onBack, onSaveAndContinue }: any) => {
                                     <Icons.Droplet className="w-6 h-6" />
                                     {form.features?.water && <div className="absolute top-1 right-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-white flex items-center justify-center"><Icons.Check className="w-2 h-2 text-white" /></div>}
                                 </div>
-                                <span className="text-[10px] font-medium">Water</span>
+                                <span className="text-[10px] font-medium">{t('vehicle_features_water')}</span>
                             </button>
 
                             <button 
@@ -1169,7 +1169,7 @@ const CreateVehicleView = ({ onBack, onSaveAndContinue }: any) => {
                                     <Icons.Zap className="w-6 h-6" />
                                     {form.features?.charger && <div className="absolute top-1 right-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-white flex items-center justify-center"><Icons.Check className="w-2 h-2 text-white" /></div>}
                                 </div>
-                                <span className="text-[10px] font-medium">Charger</span>
+                                <span className="text-[10px] font-medium">{t('vehicle_features_charger')}</span>
                             </button>
 
                             <button 
@@ -1180,7 +1180,7 @@ const CreateVehicleView = ({ onBack, onSaveAndContinue }: any) => {
                                     <Icons.Accessibility className="w-6 h-6" /> 
                                     {form.features?.accessible && <div className="absolute top-1 right-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-white flex items-center justify-center"><Icons.Check className="w-2 h-2 text-white" /></div>}
                                 </div>
-                                <span className="text-[10px] font-medium">Disabled</span>
+                                <span className="text-[10px] font-medium">{t('vehicle_features_accessible')}</span>
                             </button>
 
                             <button 
@@ -1191,13 +1191,13 @@ const CreateVehicleView = ({ onBack, onSaveAndContinue }: any) => {
                                     <Icons.Baby className="w-6 h-6" /> 
                                     {form.features?.childSeat && <div className="absolute top-1 right-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-white flex items-center justify-center"><Icons.Check className="w-2 h-2 text-white" /></div>}
                                 </div>
-                                <span className="text-[10px] font-medium">Child Seat</span>
+                                <span className="text-[10px] font-medium">{t('vehicle_features_child_seat')}</span>
                             </button>
                         </div>
                     </div>
 
                     <div className="mb-4">
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('vehicle_type')}</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('vehicle_type_label')}</label>
                         <div className="relative">
                             <select 
                                 value={form.type} 
@@ -1226,21 +1226,21 @@ const CreateVehicleView = ({ onBack, onSaveAndContinue }: any) => {
                     
                     <div className="grid grid-cols-3 gap-3 pt-2">
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Passengers</label>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('passengers')}</label>
                             <div className="relative">
                                 <input type="number" value={form.maxPassengers} onChange={e => setForm({...form, maxPassengers: parseInt(e.target.value) || 0})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center" />
                                 <Icons.User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Luggage</label>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('luggage')}</label>
                             <div className="relative">
                                 <input type="number" value={form.maxLuggage} onChange={e => setForm({...form, maxLuggage: parseInt(e.target.value) || 0})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center" />
                                 <Icons.Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             </div>
                         </div>
                          <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Carry-on</label>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('carry_on')}</label>
                             <div className="relative">
                                 <input type="number" value={form.maxCarryOn} onChange={e => setForm({...form, maxCarryOn: parseInt(e.target.value) || 0})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center" />
                                 <Icons.Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 opacity-60" />
@@ -1331,7 +1331,7 @@ const EditVehicleView = ({ vehicleId, vehicles, onSave, onClose, onDelete }: any
             <div className="p-6 space-y-6">
                 {/* Image Upload Section */}
                 <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-3">Vehicle Photos (Max 6) - Drag to reorder</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-3">{t('manage_photos')} (Max 6) - {t('drag_to_reorder')}</label>
                     <div className="grid grid-cols-3 gap-3">
                         {(form.photos || []).map((photo: VehiclePhoto, idx: number) => (
                             <div 
@@ -1346,13 +1346,13 @@ const EditVehicleView = ({ vehicleId, vehicles, onSave, onClose, onDelete }: any
                                 <button onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors">
                                     <Icons.X className="w-3 h-3" />
                                 </button>
-                                {idx === 0 && <div className="absolute bottom-0 left-0 right-0 bg-green-600/90 text-white text-[10px] text-center py-1 font-bold backdrop-blur-sm">MAIN PHOTO</div>}
+                                {idx === 0 && <div className="absolute bottom-0 left-0 right-0 bg-green-600/90 text-white text-[10px] text-center py-1 font-bold backdrop-blur-sm">{t('main_photo')}</div>}
                             </div>
                         ))}
                         {(form.photos || []).length < 6 && (
                             <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
                                 <Icons.Plus className="w-6 h-6 mb-1" />
-                                <span className="text-[10px] font-bold uppercase">Add Photo</span>
+                                <span className="text-[10px] font-bold uppercase">{t('add_photo')}</span>
                                 <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
                             </label>
                         )}
@@ -1361,7 +1361,7 @@ const EditVehicleView = ({ vehicleId, vehicles, onSave, onClose, onDelete }: any
 
                 <div className="space-y-4">
                     <div className="mb-4">
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('vehicle_type')}</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('vehicle_type_label')}</label>
                         <div className="relative">
                             <select 
                                 value={form.type || 'Economy'} 
@@ -1390,21 +1390,21 @@ const EditVehicleView = ({ vehicleId, vehicles, onSave, onClose, onDelete }: any
 
                     <div className="grid grid-cols-3 gap-3 pt-2">
                          <div>
-                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Passengers</label>
+                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('passengers')}</label>
                              <div className="relative">
                                  <input type="number" value={form.maxPassengers} onChange={e => setForm({...form, maxPassengers: parseInt(e.target.value) || 0})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center" />
                                  <Icons.User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                              </div>
                          </div>
                          <div>
-                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Luggage</label>
+                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('luggage')}</label>
                              <div className="relative">
                                  <input type="number" value={form.maxLuggage} onChange={e => setForm({...form, maxLuggage: parseInt(e.target.value) || 0})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center" />
                                  <Icons.Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                              </div>
                          </div>
                           <div>
-                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Carry-on</label>
+                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{t('carry_on')}</label>
                              <div className="relative">
                                  <input type="number" value={form.maxCarryOn} onChange={e => setForm({...form, maxCarryOn: parseInt(e.target.value) || 0})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-center" />
                                  <Icons.Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 opacity-60" />
@@ -1415,22 +1415,22 @@ const EditVehicleView = ({ vehicleId, vehicles, onSave, onClose, onDelete }: any
                     <div className="flex items-center justify-between py-3 border-t border-b border-slate-100 dark:border-slate-700 mb-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                         <div className="flex items-center gap-3">
                             <Icons.Camera className="w-5 h-5 text-slate-800 dark:text-white" />
-                            <span className="font-bold text-slate-900 dark:text-white">Vehicle photos</span>
+                            <span className="font-bold text-slate-900 dark:text-white">{t('manage_photos')}</span>
                         </div>
                         <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
                             <Icons.Check className="w-4 h-4" />
-                            <span>Approved: {(form.photos || []).length}</span>
+                            <span>{t('approved')}: {(form.photos || []).length}</span>
                             <Icons.ChevronRight className="w-4 h-4 text-slate-400 ml-2" />
                         </div>
                     </div>
                     
                     <div className="p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl mb-4">
                         <div className="flex justify-between items-center mb-2">
-                            <h5 className="font-bold text-slate-900 dark:text-white">Autocancel offers</h5>
+                            <h5 className="font-bold text-slate-900 dark:text-white">{t('autocancel_offers')}</h5>
                             <ToggleSwitch checked={form.autoCancelOffers ?? true} onChange={v => setForm({...form, autoCancelOffers: v})} />
                         </div>
                         <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                            When your offer is selected by a passenger, all other offers for the rides scheduled at the same time will be canceled automatically.
+                            {t('autocancel_desc')}
                         </p>
                     </div>
 
@@ -1460,7 +1460,7 @@ const OfferDetailsModal = ({ job, onClose, onOffer, onSkip, thresholds }: { job:
 
     const platformEstimate = useMemo(() => {
         if (job.distanceKm && job.vehicleType) {
-            return mockBackend.calculatePrice(job.distanceKm, job.vehicleType);
+            return backend.calculatePrice(job.distanceKm, job.vehicleType);
         }
         return 0;
     }, [job.distanceKm, job.vehicleType]);
@@ -1482,32 +1482,32 @@ const OfferDetailsModal = ({ job, onClose, onOffer, onSkip, thresholds }: { job:
 
         if (diffPercent > highAlert) {
             setFeedback({
-                message: "Price is way too high!", 
+                message: t('offer_feedback_high'), 
                 color: "text-red-600 dark:text-red-400",
                 icon: <Icons.AlertTriangle className="w-4 h-4" />
             });
         } else if (diffPercent < -lowAlert) {
             setFeedback({
-                message: "Price is way too low!",
+                message: t('offer_feedback_low'),
                 color: "text-red-600 dark:text-red-400",
                 icon: <Icons.AlertTriangle className="w-4 h-4" />
             });
         } else if (Math.abs(diffPercent) <= good) {
              setFeedback({
-                message: "High chance to get the trip!",
+                message: t('offer_feedback_good'),
                 color: "text-green-600 dark:text-green-400",
                 icon: <Icons.Check className="w-4 h-4" />
             });
         } else if (Math.abs(diffPercent) <= fair) {
              setFeedback({
-                message: "Great value! Your offer is highly competitive.",
+                message: t('offer_feedback_fair'),
                 color: "text-blue-600 dark:text-blue-400",
                 icon: <Icons.Info className="w-4 h-4" />
             });
         } else {
             // Gap between Fair and Alert (e.g. 36% to 49%)
             setFeedback({
-                message: "Fair price.",
+                message: t('offer_feedback_normal'),
                 color: "text-blue-600 dark:text-blue-400",
                 icon: <Icons.Info className="w-4 h-4" />
             });
@@ -1635,11 +1635,11 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
   useEffect(() => {
       const fetchData = async () => {
           try {
-              const data = await mockBackend.getJobs(UserRole.DRIVER, currentUser.id);
+              const data = await backend.getJobs(UserRole.DRIVER, currentUser.id);
               setJobs(data);
-              const t_data = await mockBackend.getPricingThresholds();
+              const t_data = await backend.getPricingThresholds();
               setThresholds(t_data);
-              const latestUser = await mockBackend.getUser(currentUser.id);
+              const latestUser = await backend.getUser(currentUser.id);
               if (latestUser) {
                   setCurrentUser(prev => {
                       if (JSON.stringify(prev) !== JSON.stringify(latestUser)) {
@@ -1654,7 +1654,7 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
       };
       
       fetchData();
-      const unsubscribe = mockBackend.subscribe(fetchData);
+      const unsubscribe = backend.subscribe(fetchData);
       const interval = setInterval(fetchData, 5000);
       return () => {
           unsubscribe();
@@ -1662,12 +1662,12 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
       };
   }, [currentUser.id]);
 
-  const updateStatus = async (jobId: string, status: JobStatus) => { await mockBackend.updateJobStatus(jobId, status); };
+  const updateStatus = async (jobId: string, status: JobStatus) => { await backend.updateJobStatus(jobId, status); };
   const isSkipped = (jobId: string) => currentUser.skippedJobIds?.includes(jobId);
-  const handleSkip = async (jobId: string) => { const u = await mockBackend.skipJob(currentUser.id, jobId); setCurrentUser(u); };
-  const handleRestore = async (jobId: string) => { const u = await mockBackend.unskipJob(currentUser.id, jobId); setCurrentUser(u); };
+  const handleSkip = async (jobId: string) => { const u = await backend.skipJob(currentUser.id, jobId); setCurrentUser(u); };
+  const handleRestore = async (jobId: string) => { const u = await backend.unskipJob(currentUser.id, jobId); setCurrentUser(u); };
   const hasBid = (job: Job) => job.bids?.some(b => b.driverId === currentUser.id);
-  const submitBid = async (jobId: string, amount: number) => { await mockBackend.placeBid(jobId, { driverId: currentUser.id, driverName: currentUser.name, amount, vehicleDescription: currentUser.vehicles?.[0] ? `${currentUser.vehicles[0].make} ${currentUser.vehicles[0].model}` : 'Standard Vehicle', rating: currentUser.rating || 5.0 }); setSelectedJobForOffer(null); setToast({msg: 'Offer sent!', type: 'success'}); };
+  const submitBid = async (jobId: string, amount: number) => { await backend.placeBid(jobId, { driverId: currentUser.id, driverName: currentUser.name, amount, vehicleDescription: currentUser.vehicles?.[0] ? `${currentUser.vehicles[0].make} ${currentUser.vehicles[0].model}` : 'Standard Vehicle', rating: currentUser.rating || 5.0 }); setSelectedJobForOffer(null); setToast({msg: 'Offer sent!', type: 'success'}); };
 
   // --- FILTERING LOGIC ---
   const filteredJobs = useMemo(() => {
@@ -1742,7 +1742,7 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
   const myVehicles = currentUser.vehicles || [];
 
   const handleSaveVehicleData = async (vehicles: VehicleSettings[]) => {
-    const updatedUser = await mockBackend.updateDriverVehicles(currentUser.id, vehicles);
+    const updatedUser = await backend.updateDriverVehicles(currentUser.id, vehicles);
     setCurrentUser(updatedUser);
     setToast({ msg: 'Changes saved', type: 'success' });
   };
@@ -1756,7 +1756,7 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
   const handleSaveEditedVehicle = (formData: VehicleSettings) => { handleSaveVehicleData(myVehicles.map((v: VehicleSettings) => v.id === editingVehicleId ? formData : v)); setSettingsView('VEHICLES'); };
   const handleDeleteVehicle = async (vehicleId: string) => { handleSaveVehicleData(myVehicles.filter(v => v.id !== vehicleId)); setToast({msg: 'Vehicle deleted', type: 'info'}); };
   const handleUpdateProfile = async (userData: Partial<User>, noExit?: boolean) => { 
-      const updatedUser = await mockBackend.adminUpdateUserInfo(currentUser.id, userData); 
+      const updatedUser = await backend.adminUpdateUserInfo(currentUser.id, userData); 
       setCurrentUser(updatedUser); 
       if (!noExit) setSettingsView('MAIN'); 
       setTimeout(() => setToast({msg: 'Changes saved', type: 'success'}), 2000); 
@@ -1786,10 +1786,10 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
                 <div className="p-6 space-y-8">
                     {/* Vehicle Types Selector */}
                     <div>
-                        <p className="text-sm text-slate-500 mb-2">Receive notifications about new ride requests</p>
+                        <p className="text-sm text-slate-500 mb-2">{t('notifications_desc')}</p>
                         <div className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700">
                             <span className="text-lg text-slate-900 dark:text-white leading-tight">
-                                Economy, Comfort, Business, Premium, VIP, SUV, Van, Minibus, Bus, Parcel
+                                {t('vehicle_types_list')}
                             </span>
                             <Icons.ChevronDown className="w-5 h-5 text-slate-900 dark:text-white shrink-0 ml-4" />
                         </div>
@@ -1800,27 +1800,27 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
                         <ToggleSwitch 
                             checked={notificationSettings.pushNewRequests} 
                             onChange={v => setNotificationSettings({...notificationSettings, pushNewRequests: v})} 
-                            label="Receive notifications about new ride requests by push" 
+                            label={t('notify_push_new')} 
                         />
                         <ToggleSwitch 
                             checked={notificationSettings.emailNewRequests} 
                             onChange={v => setNotificationSettings({...notificationSettings, emailNewRequests: v})} 
-                            label="Receive notifications about new ride requests by email" 
+                            label={t('notify_email_new')} 
                         />
                         <ToggleSwitch 
                             checked={notificationSettings.pushUrgent} 
                             onChange={v => setNotificationSettings({...notificationSettings, pushUrgent: v})} 
-                            label="Receive pushes about nearby urgent requests" 
+                            label={t('notify_push_urgent')} 
                         />
                         <ToggleSwitch 
                             checked={true} 
                             onChange={() => {}} 
-                            label="Receive notifications about automatic offers created" 
+                            label={t('notify_auto_offers')} 
                         />
                         <ToggleSwitch 
                             checked={true} 
                             onChange={() => {}} 
-                            label="Receive notifications 24 hours prior to the ride start" 
+                            label={t('notify_24h_reminder')} 
                         />
                     </div>
                 </div>
@@ -1837,7 +1837,7 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
           case 'INVITE': return <SettingsLayout title={t('invite')} onBack={() => setSettingsView('MAIN')}><div className="p-6 text-center text-slate-500">{t('coming_soon')}</div></SettingsLayout>;
           case 'DOCUMENTS': return <DocumentsView currentUser={currentUser} onBack={() => setSettingsView('MAIN')} />;
           case 'INSTRUCTIONS': return <SettingsLayout title={t('instructions')} onBack={() => setSettingsView('MAIN')}><div className="p-6 text-slate-600 dark:text-slate-300 space-y-4"><p>{t('instruction_1')}</p><p>{t('instruction_2')}</p><p>{t('instruction_3')}</p></div></SettingsLayout>;
-          case 'SUPPORT': return <SettingsLayout title={t('support_title')} onBack={() => setSettingsView('MAIN')}><div className="p-6"><a href="mailto:drivers@gettransfer.com" className="block p-4 bg-white dark:bg-slate-800 rounded-xl mb-4 border border-slate-200 dark:border-slate-700"><span className="font-bold dark:text-white">{t('email_support')}</span><p className="text-sm text-slate-500">drivers@gettransfer.com</p></a></div></SettingsLayout>;
+          case 'SUPPORT': return <SettingsLayout title={t('support_title')} onBack={() => setSettingsView('MAIN')}><div className="p-6"><a href="mailto:drivers@tripfers.com" className="block p-4 bg-white dark:bg-slate-800 rounded-xl mb-4 border border-slate-200 dark:border-slate-700"><span className="font-bold dark:text-white">{t('email_support')}</span><p className="text-sm text-slate-500">drivers@tripfers.com</p></a></div></SettingsLayout>;
           case 'OFFERS': return <SettingsLayout title={t('smart_offers')} onBack={() => setSettingsView('MAIN')}><div className="p-6 text-center text-slate-500"><Icons.RotateCw className="w-12 h-12 mx-auto mb-4 opacity-50" /><p>{t('coming_soon')}</p></div></SettingsLayout>;
           case 'CURRENCY': return <SettingsLayout title={t('currency')} onBack={() => setSettingsView('MAIN')}><div className="p-6"><p>{t('currency_placeholder')}</p></div></SettingsLayout>;
           case 'DISTANCE': return <SettingsLayout title={t('units')} onBack={() => setSettingsView('MAIN')}><div className="p-6"><p>{t('units_placeholder')}</p></div></SettingsLayout>;

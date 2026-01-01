@@ -1,37 +1,105 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { mockBackend } from '../services/mockBackend';
+import { backend } from '../services/BackendService';
 import { Icons } from '../components/Icons';
-import { User, UserRole, UserStatus, Job, PricingConfig, VehicleSettings, IntegrationsConfig, DriverDocument, PromoCode, JobStatus, VehiclePhoto, CompanyProfile, AdminBadgeSettings, PricingThresholds, SupportSettings } from '../types';
+import { User, UserRole, UserStatus, Job, PricingConfig, VehicleSettings, IntegrationsConfig, DriverDocument, PromoCode, JobStatus, VehiclePhoto, CompanyProfile, AdminBadgeSettings, PricingThresholds, SupportSettings, BrandingSettings } from '../types';
 import { ChatWindow } from '../components/ChatWindow';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 // --- SUB-COMPONENTS ---
+
+const NavItem = ({ active, onClick, icon: Icon, label, badge, badgeColor = 'bg-red-600' }: any) => (
+    <button 
+        onClick={onClick} 
+        className={`w-full text-left flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group relative ${
+            active 
+                ? 'bg-red-50 dark:bg-red-900/10 text-red-600 shadow-sm' 
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white'
+        }`}
+    >
+        <div className="flex items-center gap-3">
+            <Icon className={`w-5 h-5 transition-transform duration-200 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
+            <span className={`text-sm tracking-tight ${active ? 'font-black' : 'font-bold'}`}>{label}</span>
+        </div>
+        {badge !== undefined && badge > 0 && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black text-white ${badgeColor} shadow-sm min-w-[20px] text-center`}>
+                {badge}
+            </span>
+        )}
+        {active && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-red-600 rounded-r-full shadow-[2px_0_8px_rgba(220,38,38,0.3)]" />
+        )}
+    </button>
+);
+
+const HeaderAction = ({ icon: Icon, onClick, badgeCount }: any) => (
+    <button 
+        onClick={onClick}
+        className="p-2.5 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all relative group"
+    >
+        <Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+        {badgeCount !== undefined && badgeCount > 0 && (
+            <span className="absolute top-2 right-2 w-2 h-2 bg-red-600 rounded-full border-2 border-white dark:border-slate-800" />
+        )}
+    </button>
+);
+
+const FilterTab = ({ active, onClick, label }: any) => (
+    <button 
+        onClick={onClick}
+        className={`px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${
+            active 
+                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg shadow-slate-900/10' 
+                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700'
+        }`}
+    >
+        {label}
+    </button>
+);
+
+const PageHeader = ({ title, icon: Icon, onBack }: { title: string, icon: any, onBack: () => void }) => (
+    <div className="flex items-center gap-4 animate-fade-in-up">
+        <div className="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700">
+            <Icon className="w-7 h-7 text-slate-900 dark:text-white" />
+        </div>
+        <div className="flex flex-col">
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{title}</h1>
+            <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Management Active</span>
+            </div>
+        </div>
+    </div>
+);
+
 const StatusBadge = ({ status, className }: { status: string, className?: string }) => (
-    <span className={`rounded-full font-bold uppercase ${className || 'text-[10px] px-2 py-0.5'} ${
-        status === 'ACTIVE' || status === 'ACCEPTED' || status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-        status === 'PENDING' || status === 'PENDING_VERIFICATION' ? 'bg-amber-100 text-amber-700' :
-        status === 'OFFERS' ? 'bg-blue-100 text-blue-800' :
-        status === 'CANCELLED' || status === 'REJECTED' || status === 'SUSPENDED' ? 'bg-red-100 text-red-700' :
-        'bg-blue-100 text-blue-700' // Default for IN_PROGRESS etc.
+    <span className={`rounded-lg font-black uppercase tracking-tighter shadow-sm border ${className || 'text-[10px] px-2.5 py-1'} ${
+        status === 'ACTIVE' || status === 'ACCEPTED' || status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/10 dark:text-emerald-400 dark:border-emerald-800/50' :
+        status === 'PENDING' || status === 'PENDING_VERIFICATION' ? 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/10 dark:text-amber-400 dark:border-amber-800/50' :
+        status === 'OFFERS' ? 'bg-blue-50 text-blue-800 border-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-800/50' :
+        status === 'CANCELLED' || status === 'REJECTED' || status === 'SUSPENDED' ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900/10 dark:text-red-400 dark:border-red-800/50' :
+        'bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-900/10 dark:text-indigo-400 dark:border-indigo-800/50' // Default for IN_PROGRESS etc.
     }`}>
-        {status.replace(/_/g, ' ')}
+        {(status || '').replace(/_/g, ' ')}
     </span>
 );
 
-const StatCard = ({ title, value, icon, onClick }: any) => (
-    <div onClick={onClick} className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all cursor-pointer">
-        <div className="flex justify-between items-start mb-4">
-            <div>
-                <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">{title}</p>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1">{value}</h3>
-            </div>
-            <div className="bg-slate-100 dark:bg-slate-700 p-3 rounded-lg text-slate-600 dark:text-slate-300">
+const StatCard = ({ title, value, icon, trend, onClick }: any) => (
+    <div onClick={onClick} className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all cursor-pointer group hover:-translate-y-1">
+        <div className="flex justify-between items-start mb-6">
+            <div className="bg-slate-50 dark:bg-slate-900/50 w-12 h-12 rounded-2xl flex items-center justify-center text-slate-600 dark:text-slate-400 group-hover:bg-red-600 group-hover:text-white transition-all">
                 {icon}
             </div>
+            {trend && (
+                <div className={`flex items-center text-[10px] font-black px-2 py-1 rounded-full ${trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : 'bg-red-50 text-red-600 dark:bg-red-900/20'}`}>
+                    <Icons.TrendingUp className="w-3 h-3 mr-1" />
+                    {trend}
+                </div>
+            )}
         </div>
-        <div className="flex items-center text-xs font-bold text-green-600 gap-1">
-            <Icons.ChartLine className="w-4 h-4" />
-            <span>+12% vs last month</span>
+        <div>
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{title}</p>
+            <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{value}</h3>
         </div>
     </div>
 );
@@ -255,7 +323,7 @@ const MarketingView = ({ onUpdate }: any) => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
             <h3 className="font-bold text-lg mb-4 dark:text-white">Promo Codes</h3>
-            <button onClick={() => mockBackend.createPromoCode({ code: 'NEW20', value: 20 }).then(onUpdate)} className="w-full bg-black text-white py-3 rounded-xl font-bold mb-4">Create New Code</button>
+            <button onClick={() => backend.createPromoCode({ code: 'NEW20', value: 20 }).then(onUpdate)} className="w-full bg-black text-white py-3 rounded-xl font-bold mb-4">Create New Code</button>
             <div className="space-y-2">
                 <div className="flex justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
                     <span className="font-mono font-bold">WELCOME20</span>
@@ -284,13 +352,111 @@ const BroadcastView = () => (
     </div>
 );
 
-const SettingsView = ({ badgeSettings, onUpdateBadges }: { badgeSettings: AdminBadgeSettings, onUpdateBadges: (s: AdminBadgeSettings) => void }) => {
+const SettingsView = ({ 
+    badgeSettings, 
+    onUpdateBadges,
+    brandingSettings,
+    onUpdateBranding
+}: { 
+    badgeSettings: AdminBadgeSettings, 
+    onUpdateBadges: (s: AdminBadgeSettings) => void,
+    brandingSettings: BrandingSettings | null,
+    onUpdateBranding: (s: BrandingSettings) => void
+}) => {
+    const [localBranding, setLocalBranding] = useState<BrandingSettings>({
+        mainFaviconUrl: brandingSettings?.mainFaviconUrl || '',
+        adminFaviconUrl: brandingSettings?.adminFaviconUrl || ''
+    });
+    const [showSaved, setShowSaved] = useState(false);
+
+    useEffect(() => {
+        if (brandingSettings) {
+            setLocalBranding(brandingSettings);
+        }
+    }, [brandingSettings]);
+
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        const handleClickAnywhere = () => setShowSaved(false);
+
+        if (showSaved) {
+            timer = setTimeout(() => setShowSaved(false), 3000);
+            // Add listener after a small delay to avoid immediate trigger from the save button click
+            setTimeout(() => document.addEventListener('click', handleClickAnywhere), 100);
+        }
+
+        return () => {
+            clearTimeout(timer);
+            document.removeEventListener('click', handleClickAnywhere);
+        };
+    }, [showSaved]);
+
+    const handleSaveBranding = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent immediate dismissal
+        onUpdateBranding(localBranding);
+        setShowSaved(true);
+    };
+
     return (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
             <h3 className="font-bold text-lg mb-6 dark:text-white">Admin Settings</h3>
             
-            <div className="space-y-6">
+            <div className="space-y-8">
+                {/* BRANDING SECTION */}
                 <div>
+                    <h4 className="text-sm font-bold text-slate-500 uppercase mb-4 flex items-center gap-2">
+                        <Icons.Image className="w-4 h-4"/> Branding & Appearance
+                    </h4>
+                    <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700 space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Main Site Favicon URL</label>
+                            <div className="flex gap-2 items-center">
+                                {localBranding.mainFaviconUrl && (
+                                    <img src={localBranding.mainFaviconUrl} alt="Preview" className="w-9 h-9 p-1 bg-white rounded border border-slate-200 object-contain" />
+                                )}
+                                <input 
+                                    type="text" 
+                                    value={localBranding.mainFaviconUrl}
+                                    onChange={e => setLocalBranding({...localBranding, mainFaviconUrl: e.target.value})}
+                                    className="flex-1 p-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-blue-500 dark:text-white"
+                                    placeholder="https://example.com/favicon.png"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Admin Portal Favicon URL</label>
+                            <div className="flex gap-2 items-center">
+                                {localBranding.adminFaviconUrl && (
+                                    <img src={localBranding.adminFaviconUrl} alt="Preview" className="w-9 h-9 p-1 bg-white rounded border border-slate-200 object-contain" />
+                                )}
+                                <input 
+                                    type="text" 
+                                    value={localBranding.adminFaviconUrl}
+                                    onChange={e => setLocalBranding({...localBranding, adminFaviconUrl: e.target.value})}
+                                    className="flex-1 p-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-blue-500 dark:text-white"
+                                    placeholder="https://example.com/admin-favicon.png"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-start pt-2 items-center gap-4 relative">
+                            <button 
+                                onClick={handleSaveBranding}
+                                className="bg-black text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors"
+                            >
+                                Save Branding
+                            </button>
+                            {showSaved && (
+                                <div className="absolute left-32 bg-green-600 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-lg animate-fade-in flex items-center gap-2 z-10 whitespace-nowrap">
+                                    <Icons.Check className="w-3 h-3" /> Changes Saved!
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="border-t border-slate-100 dark:border-slate-700 pt-6">
                     <h4 className="text-sm font-bold text-slate-500 uppercase mb-4">Notification Badges</h4>
                     <div className="space-y-4">
                         <label className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
@@ -353,18 +519,18 @@ const UserDetailsModal = ({ user, onClose, onUpdate, onPayout }: any) => {
         });
 
         if (updatedVehicles) {
-            await mockBackend.updateDriverVehicles(user.id, updatedVehicles);
+            await backend.updateDriverVehicles(user.id, updatedVehicles);
             onUpdate();
         }
     };
 
     const handleUpdatePaymentStatus = async (status: 'APPROVED' | 'REJECTED') => {
-        await mockBackend.adminApprovePaymentDetails(user.id, status);
+        await backend.adminApprovePaymentDetails(user.id, status);
         onUpdate();
     };
 
     const handleUpdateDocumentStatus = async (docId: string, status: 'APPROVED' | 'REJECTED') => {
-        await mockBackend.adminUpdateDocumentStatus(user.id, docId, status);
+        await backend.adminUpdateDocumentStatus(user.id, docId, status);
         onUpdate();
     };
 
@@ -558,7 +724,7 @@ const UserDetailsModal = ({ user, onClose, onUpdate, onPayout }: any) => {
                          {user.role === UserRole.DRIVER && (
                              <button onClick={() => onPayout(user.id, user.balance || 0)} className="bg-black text-white px-4 py-2 rounded-lg font-bold text-sm">Process Payout</button>
                          )}
-                         <button onClick={() => mockBackend.deleteUser(user.id).then(() => { onUpdate(); onClose(); })} className="text-red-600 font-bold text-sm px-4">Delete User</button>
+                         <button onClick={() => backend.deleteUser(user.id).then(() => { onUpdate(); onClose(); })} className="text-red-600 font-bold text-sm px-4">Delete User</button>
                      </div>
                  </div>
              </div>
@@ -571,13 +737,13 @@ const TripDetailsModal = ({ job, onClose, onUpdate, users, adminUser }: { job: J
     const [showChat, setShowChat] = useState(false);
 
     const handlePriceOverride = async () => {
-        await mockBackend.adminOverridePrice(job.id, price);
+        await backend.adminOverridePrice(job.id, price);
         onUpdate();
     };
 
     const handleCancel = async () => {
         if(confirm('Are you sure? This will cancel the booking for both client and driver.')) {
-            await mockBackend.cancelJob(job.id);
+            await backend.cancelJob(job.id);
             onUpdate();
             onClose();
         }
@@ -716,7 +882,7 @@ const TripDetailsModal = ({ job, onClose, onUpdate, users, adminUser }: { job: J
     );
 };
 
-const MatsView = ({ thresholds, onUpdate }: any) => {
+const MatsView = ({ thresholds, onUpdate, onBack }: any) => {
     const [localThresholds, setLocalThresholds] = useState<PricingThresholds>(thresholds || {
         highAlertPercent: 50, lowAlertPercent: 50, fairOfferPercent: 35, goodOfferPercent: 10
     });
@@ -738,8 +904,8 @@ const MatsView = ({ thresholds, onUpdate }: any) => {
 
     return (
         <div className="max-w-4xl space-y-8 animate-fade-in">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Trip Prices</h1>
-            <p className="text-slate-500">Configure the percentage thresholds for driver offer warnings.</p>
+            <PageHeader title="Trip Prices" icon={Icons.Sliders} onBack={onBack} />
+            <p className="text-slate-500 -mt-6">Configure the percentage thresholds for driver offer warnings.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* RED WARNINGS */}
@@ -835,7 +1001,7 @@ const MatsView = ({ thresholds, onUpdate }: any) => {
     );
 };
 
-const SupportView = ({ settings, onUpdate }: { settings: SupportSettings, onUpdate: (s: SupportSettings) => void }) => {
+const SupportView = ({ settings, onUpdate, onBack }: { settings: SupportSettings, onUpdate: (s: SupportSettings) => void, onBack: () => void }) => {
     const [localSettings, setLocalSettings] = useState<SupportSettings>(settings);
     const [saved, setSaved] = useState(false);
 
@@ -851,8 +1017,8 @@ const SupportView = ({ settings, onUpdate }: { settings: SupportSettings, onUpda
 
     return (
         <div className="max-w-4xl space-y-8 animate-fade-in">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Support Configuration</h1>
-            <p className="text-slate-500">Manage contact details displayed to drivers and clients.</p>
+            <PageHeader title="Support Configuration" icon={Icons.HelpCircle} onBack={onBack} />
+            <p className="text-slate-500 -mt-6">Manage contact details displayed to drivers and clients.</p>
 
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                 <div className="space-y-6">
@@ -928,14 +1094,39 @@ export const AdminDashboard: React.FC = () => {
     const [badgeSettings, setBadgeSettings] = useState<AdminBadgeSettings | null>(null);
     const [thresholds, setThresholds] = useState<PricingThresholds | null>(null);
     const [supportSettings, setSupportSettings] = useState<SupportSettings | null>(null);
+    const [brandingSettings, setBrandingSettings] = useState<BrandingSettings | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Default closed on mobile
+    const [showResetModal, setShowResetModal] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showIntegrationsSaved, setShowIntegrationsSaved] = useState(false);
+    const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
+
+    const toggleVisibility = (field: string) => {
+        setVisibleKeys(prev => ({ ...prev, [field]: !prev[field] }));
+    };
+
+    // Handle "Saved" popup auto-dismiss and click-outside
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        const handleClickAnywhere = () => setShowIntegrationsSaved(false);
+
+        if (showIntegrationsSaved) {
+            timer = setTimeout(() => setShowIntegrationsSaved(false), 3000);
+            // Add listener after a small delay to avoid immediate trigger from the save button click
+            setTimeout(() => document.addEventListener('click', handleClickAnywhere), 100);
+        }
+
+        return () => {
+            clearTimeout(timer);
+            document.removeEventListener('click', handleClickAnywhere);
+        };
+    }, [showIntegrationsSaved]);
 
     // Modals
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
     const [filterRole, setFilterRole] = useState<'ALL' | 'DRIVER' | 'CLIENT'>('ALL'); // Added Filter State
-    const adminUser = mockBackend.getCurrentUser(); // Assuming admin is logged in.
+    const adminUser = backend.getCurrentUser(); // Assuming admin is logged in.
 
     // FIX: Keep selectedUser and selectedJob in sync with real-time updates
     useEffect(() => {
@@ -962,8 +1153,8 @@ export const AdminDashboard: React.FC = () => {
             setError(null);
             
             // Safe check for new method to prevent crashes if HMR is stale
-            const thresholdsPromise = mockBackend.getPricingThresholds 
-                ? mockBackend.getPricingThresholds() 
+            const thresholdsPromise = backend.getPricingThresholds 
+                ? backend.getPricingThresholds() 
                 : Promise.resolve({
                     highAlertPercent: 50, 
                     lowAlertPercent: 50, 
@@ -971,85 +1162,113 @@ export const AdminDashboard: React.FC = () => {
                     goodOfferPercent: 10
                   });
 
-            const supportSettingsPromise = mockBackend.getSupportSettings 
-                ? mockBackend.getSupportSettings() 
+            const supportSettingsPromise = backend.getSupportSettings 
+                ? backend.getSupportSettings() 
                 : Promise.resolve({
-                    financeEmail: 'finance@gettransfer.com',
-                    supportEmail: 'support@gettransfer.com',
+                    financeEmail: 'finance@tripfers.com',
+                    supportEmail: 'support@tripfers.com',
                     supportPhone: '+1 555 0199',
                     whatsappNumber: '+1 555 0199'
                   });
 
-            const [fetchedStats, fetchedUsers, fetchedJobs, fetchedPricing, fetchedIntegrations, fetchedPromoCodes, fetchedBadgeSettings, fetchedThresholds, fetchedSupportSettings] = await Promise.all([
-                mockBackend.getStats(),
-                mockBackend.getAllUsers(),
-                mockBackend.getJobs(UserRole.ADMIN),
-                mockBackend.getPricingConfig(),
-                mockBackend.getIntegrations(),
-                mockBackend.getPromoCodes(),
-                mockBackend.getAdminBadgeSettings(),
+            const brandingSettingsPromise = backend.getBrandingSettings
+                ? backend.getBrandingSettings()
+                : Promise.resolve({
+                    mainFaviconUrl: '/favicon.png',
+                    adminFaviconUrl: '/favicon_admin.png'
+                });
+
+            const [fetchedStats, fetchedUsers, fetchedJobs, fetchedPricing, fetchedPromoCodes, fetchedBadgeSettings, fetchedThresholds, fetchedSupportSettings, fetchedBrandingSettings] = await Promise.all([
+                backend.getStats(),
+                backend.getAllUsers(),
+                backend.getJobs(UserRole.ADMIN),
+                backend.getPricingConfig(),
+                backend.getPromoCodes(),
+                backend.getAdminBadgeSettings(),
                 thresholdsPromise,
-                supportSettingsPromise
+                supportSettingsPromise,
+                brandingSettingsPromise
             ]);
             setStats(fetchedStats);
             setUsers(fetchedUsers);
             setJobs(fetchedJobs);
             setPricingConfig(fetchedPricing);
-            setIntegrationsConfig(fetchedIntegrations);
+            // setIntegrationsConfig(fetchedIntegrations); // Fetched separately once
             setPromoCodes(fetchedPromoCodes);
             setBadgeSettings(fetchedBadgeSettings);
             setThresholds(fetchedThresholds);
             setSupportSettings(fetchedSupportSettings);
+            setBrandingSettings(fetchedBrandingSettings);
         } catch (err) {
             console.error("AdminDashboard fetch error:", err);
             setError("Failed to load dashboard data. Please refresh the page.");
         }
     }, []);
 
+    // Fetch integrations only once on mount to prevent overwriting user input
+    useEffect(() => {
+        const fetchIntegrations = async () => {
+             const integrations = await backend.getIntegrations();
+             setIntegrationsConfig(integrations);
+        };
+        fetchIntegrations();
+    }, []);
+
     useEffect(() => {
         fetchData();
-        const unsubscribe = mockBackend.subscribe(fetchData);
-        // Force refresh every 1 second to ensure instant sync perception
-        const interval = setInterval(fetchData, 1000); 
+        const unsubscribe = backend.subscribe(fetchData);
         return () => {
             unsubscribe();
-            clearInterval(interval);
         };
     }, [fetchData]);
 
     const handleUpdatePricing = async (config: PricingConfig) => {
-        await mockBackend.updatePricingConfig(config);
+        await backend.updatePricingConfig(config);
         fetchData();
     };
 
     const handleUpdateIntegrations = async (config: IntegrationsConfig) => {
-        await mockBackend.updateIntegrations(config);
-        fetchData();
+        try {
+            await backend.updateIntegrations(config);
+            setShowIntegrationsSaved(true);
+            // Timeout is now handled by useEffect
+            fetchData();
+        } catch (error) {
+            console.error("Failed to save integrations:", error);
+            alert("Failed to save settings! Permission denied or network error.\nPlease check the console for details.");
+        }
     };
 
     const handleUpdateBadges = async (settings: AdminBadgeSettings) => {
-        await mockBackend.updateAdminBadgeSettings(settings);
+        await backend.updateAdminBadgeSettings(settings);
         fetchData();
     };
 
     const handleUpdateThresholds = async (newThresholds: PricingThresholds) => {
-        await mockBackend.updatePricingThresholds(newThresholds);
+        await backend.updatePricingThresholds(newThresholds);
         fetchData();
     };
 
     const handleUpdateSupportSettings = async (newSettings: SupportSettings) => {
-        await mockBackend.updateSupportSettings(newSettings);
+        await backend.updateSupportSettings(newSettings);
         fetchData();
+    };
+
+    const handleUpdateBranding = async (newSettings: BrandingSettings) => {
+        if (backend.updateBrandingSettings) {
+            await backend.updateBrandingSettings(newSettings);
+            fetchData();
+        }
     };
     
     const handleResolveDispute = async (jobId: string, resolution: 'REFUND' | 'PAY_DRIVER' | 'SPLIT') => {
-        await mockBackend.resolveDispute(jobId, resolution);
+        await backend.resolveDispute(jobId, resolution);
         fetchData();
     };
 
     const handleProcessPayout = async (userId: string, amount: number) => {
         if (confirm(`Process a payout of $${amount} for user ID: ${userId}?`)) {
-            await mockBackend.manualPayout(userId, amount);
+            await backend.manualPayout(userId, amount);
             fetchData();
             setSelectedUser(null);
         }
@@ -1074,14 +1293,6 @@ export const AdminDashboard: React.FC = () => {
     // --- SIDEBAR CLOSE ON CLICK OUTSIDE ---
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            // Only applicable on mobile/tablet where sidebar might overlay
-            // But user asked for "click outside sidebar to close it" generically.
-            // Assuming this behavior is desired when screen is small or if it's treated as a drawer.
-            // Currently the sidebar is fixed left. If we want to support mobile toggling we need state.
-            // However, the prompt says "When the sidebar is open... click outside... to minimize/close".
-            // Since the current CSS is 'fixed inset-y-0 left-0', it's always visible on desktop.
-            // I will add a simple mobile toggle logic first to make "opening" relevant.
-            
             if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
                 setIsSidebarOpen(false);
             }
@@ -1095,20 +1306,17 @@ export const AdminDashboard: React.FC = () => {
         };
     }, [isSidebarOpen]);
 
-    return (
-        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 relative">
-            {/* Mobile Sidebar Toggle */}
-            <button 
-                className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700"
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            >
-                <Icons.Menu className="w-6 h-6 text-slate-700 dark:text-white" />
-            </button>
+    const handleTabChange = (tab: string) => {
+        setActiveTab(tab);
+        setIsSidebarOpen(false);
+    };
 
-            {/* Sidebar Backdrop */}
+    return (
+        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 font-sans selection:bg-red-100 selection:text-red-900 p-0 m-0">
+            {/* Sidebar Backdrop (Mobile Only) */}
             {isSidebarOpen && (
                 <div 
-                    className="fixed inset-0 bg-black/50 z-30 md:hidden animate-fade-in"
+                    className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[70] animate-fade-in md:hidden"
                     onClick={() => setIsSidebarOpen(false)}
                 />
             )}
@@ -1116,446 +1324,730 @@ export const AdminDashboard: React.FC = () => {
             {/* Sidebar */}
             <aside 
                 ref={sidebarRef}
-                className={`w-64 bg-white dark:bg-slate-800 shadow-xl border-r border-slate-200 dark:border-slate-700 p-6 flex flex-col fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out ${
-                    isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+                className={`w-72 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col fixed inset-y-0 left-0 z-[80] transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
+                    isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}
             >
-                <div className="flex items-center gap-2 mb-8 mt-12 md:mt-2">
-                    <Icons.Shield className="w-7 h-7 text-red-600" />
-                    <h2 className="text-xl font-black text-slate-900 dark:text-white">Admin Panel</h2>
+                {/* Sidebar Header */}
+                <div className="h-20 flex items-center px-8 border-b border-slate-100 dark:border-slate-700/50">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-red-600 rounded-lg flex items-center justify-center shadow-lg shadow-red-600/20">
+                            <Icons.Shield className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex flex-col">
+                            {/* Logo Text Removed */}
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Admin Portal</span>
+                        </div>
+                    </div>
                 </div>
-                <nav className="space-y-2 flex-1">
-                    <button onClick={() => setActiveTab('dashboard')} className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition-colors ${activeTab === 'dashboard' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}>
-                        <Icons.LayoutDashboard className="w-5 h-5" /> Dashboard
-                    </button>
-                    <button onClick={() => setActiveTab('trips')} className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition-colors relative ${activeTab === 'trips' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}>
-                        <Icons.Route className="w-5 h-5" /> Trips
-                        {(getBadgeCount('requests') > 0 || getBadgeCount('upcoming') > 0 || getBadgeCount('complete') > 0) && badgeSettings?.showTripsBadge && (
-                             <span className="absolute top-1 right-2 w-5 h-5 bg-red-600 text-white text-[10px] rounded-full flex items-center justify-center shadow-sm">
-                                {(getBadgeCount('requests') + getBadgeCount('upcoming') + getBadgeCount('complete'))}
-                            </span>
-                        )}
-                    </button>
-                    <button onClick={() => setActiveTab('users')} className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition-colors ${activeTab === 'users' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}>
-                        <Icons.Users className="w-5 h-5" /> Users
-                    </button>
-                    <button onClick={() => setActiveTab('pricing')} className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition-colors ${activeTab === 'pricing' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}>
-                        <Icons.DollarSign className="w-5 h-5" /> Trip Fares
-                    </button>
-                    <button onClick={() => setActiveTab('mats')} className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition-colors ${activeTab === 'mats' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}>
-                        <Icons.Sliders className="w-5 h-5" /> Trip Prices
-                    </button>
-                    <button onClick={() => setActiveTab('support')} className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition-colors ${activeTab === 'support' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}>
-                        <Icons.HelpCircle className="w-5 h-5" /> Support
-                    </button>
-                     <button onClick={() => setActiveTab('disputes')} className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition-colors ${activeTab === 'disputes' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}>
-                        <Icons.Gavel className="w-5 h-5" /> Disputes
-                    </button>
-                    <button onClick={() => setActiveTab('marketing')} className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition-colors ${activeTab === 'marketing' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}>
-                        <Icons.Megaphone className="w-5 h-5" /> Marketing
-                    </button>
-                     <button onClick={() => setActiveTab('broadcast')} className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition-colors ${activeTab === 'broadcast' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}>
-                        <Icons.Bell className="w-5 h-5" /> Broadcast
-                    </button>
-                    <button onClick={() => setActiveTab('integrations')} className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition-colors ${activeTab === 'integrations' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}>
-                        <Icons.Plug className="w-5 h-5" /> Integrations
-                    </button>
-                     <button onClick={() => setActiveTab('settings')} className={`w-full text-left flex items-center gap-3 p-3 rounded-xl transition-colors ${activeTab === 'settings' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}>
-                        <Icons.Settings className="w-5 h-5" /> Settings
-                    </button>
+
+                {/* Navigation */}
+                <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-8 scrollbar-hide">
+                    {/* OVERVIEW Group */}
+                    <div>
+                        <h3 className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Overview</h3>
+                        <div className="space-y-1">
+                            <NavItem 
+                                active={activeTab === 'dashboard'} 
+                                onClick={() => handleTabChange('dashboard')} 
+                                icon={Icons.LayoutDashboard} 
+                                label="Dashboard" 
+                            />
+                        </div>
+                    </div>
+
+                    {/* OPERATIONS Group */}
+                    <div>
+                        <h3 className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Operations</h3>
+                        <div className="space-y-1">
+                            <NavItem 
+                                active={activeTab === 'trips'} 
+                                onClick={() => handleTabChange('trips')} 
+                                icon={Icons.Route} 
+                                label="Trips" 
+                                badge={getBadgeCount('requests') + getBadgeCount('upcoming') + getBadgeCount('complete')}
+                                badgeColor="bg-red-600"
+                            />
+                            <NavItem 
+                                active={activeTab === 'users'} 
+                                onClick={() => handleTabChange('users')} 
+                                icon={Icons.Users} 
+                                label="Users" 
+                            />
+                            <NavItem 
+                                active={activeTab === 'disputes'} 
+                                onClick={() => handleTabChange('disputes')} 
+                                icon={Icons.Gavel} 
+                                label="Disputes" 
+                            />
+                        </div>
+                    </div>
+
+                    {/* CONFIGURATION Group */}
+                    <div>
+                        <h3 className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Configuration</h3>
+                        <div className="space-y-1">
+                            <NavItem 
+                                active={activeTab === 'pricing'} 
+                                onClick={() => handleTabChange('pricing')} 
+                                icon={Icons.DollarSign} 
+                                label="Trip Fares" 
+                            />
+                            <NavItem 
+                                active={activeTab === 'mats'} 
+                                onClick={() => handleTabChange('mats')} 
+                                icon={Icons.Sliders} 
+                                label="Trip Prices" 
+                            />
+                            <NavItem 
+                                active={activeTab === 'integrations'} 
+                                onClick={() => handleTabChange('integrations')} 
+                                icon={Icons.Plug} 
+                                label="Integrations" 
+                            />
+                            <NavItem 
+                                active={activeTab === 'settings'} 
+                                onClick={() => handleTabChange('settings')} 
+                                icon={Icons.Settings} 
+                                label="Settings" 
+                            />
+                        </div>
+                    </div>
+
+                    {/* TOOLS Group */}
+                    <div>
+                        <h3 className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Tools</h3>
+                        <div className="space-y-1">
+                            <NavItem 
+                                active={activeTab === 'marketing'} 
+                                onClick={() => handleTabChange('marketing')} 
+                                icon={Icons.Megaphone} 
+                                label="Marketing" 
+                            />
+                            <NavItem 
+                                active={activeTab === 'broadcast'} 
+                                onClick={() => handleTabChange('broadcast')} 
+                                icon={Icons.Bell} 
+                                label="Broadcast" 
+                            />
+                            <NavItem 
+                                active={activeTab === 'support'} 
+                                onClick={() => handleTabChange('support')} 
+                                icon={Icons.HelpCircle} 
+                                label="Support" 
+                            />
+                        </div>
+                    </div>
                 </nav>
+
+                {/* Sidebar Footer */}
+                <div className="p-4 border-t border-slate-100 dark:border-slate-700/50">
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700/50">
+                        <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/20 flex items-center justify-center text-red-600 font-bold">
+                            {adminUser?.name?.charAt(0) || 'A'}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{adminUser?.name || 'Administrator'}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase truncate">Super Admin</span>
+                        </div>
+                    </div>
+                </div>
             </aside>
 
-            {/* Main Content */}
-            <main className="flex-1 p-4 md:p-8 md:ml-64 animate-fade-in pt-16 md:pt-8">
-                {error && (
-                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-8 rounded-xl text-center mb-8">
-                        <Icons.AlertTriangle className="w-12 h-12 text-red-600 dark:text-red-400 mx-auto mb-4" />
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Error Loading Dashboard</h2>
-                        <p className="text-slate-600 dark:text-slate-400 mb-6">{error}</p>
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col min-w-0 md:ml-72 p-0 m-0">
+                <header className="h-20 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-[100] px-4 md:px-8 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
                         <button 
-                            onClick={() => { setError(null); fetchData(); }} 
-                            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-bold transition-colors"
+                            onClick={() => setIsSidebarOpen(true)}
+                            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-200 md:hidden"
                         >
-                            Retry
+                            <Icons.Menu className="w-6 h-6" />
                         </button>
-                    </div>
-                )}
-
-                {!error && activeTab === 'dashboard' && stats && (
-                    <div className="space-y-8">
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                            <StatCard title="Total Users" value={stats.totalUsers} icon={<Icons.Users className="w-6 h-6" />} onClick={() => setActiveTab('users')} />
-                            <StatCard title="Total Jobs" value={stats.totalJobs} icon={<Icons.Route className="w-6 h-6" />} onClick={() => setActiveTab('trips')} />
-                            <StatCard title="Revenue" value={`$${stats.revenue}`} icon={<Icons.DollarSign className="w-6 h-6" />} onClick={() => {}} />
-                            <StatCard title="Active Drivers" value={stats.activeDrivers} icon={<Icons.Car className="w-6 h-6" />} onClick={() => setActiveTab('users')} />
+                        
+                        <div className="hidden md:flex items-center gap-2 text-sm">
+                            <span className="text-slate-400 font-medium">Pages</span>
+                            <Icons.ChevronRight className="w-4 h-4 text-slate-300" />
+                            <span className="text-slate-900 dark:text-white font-bold capitalize">{activeTab.replace(/_/g, ' ')}</span>
                         </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                                <h3 className="font-bold text-lg mb-4 dark:text-white">Revenue Trend</h3>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <AreaChart data={[ { name: 'Jan', uv: 4000, pv: 2400, amt: 2400 }, { name: 'Feb', uv: 3000, pv: 1398, amt: 2210 }, { name: 'Mar', uv: 2000, pv: 9800, amt: 2290 }, { name: 'Apr', uv: 2780, pv: 3908, amt: 2000 }, { name: 'May', uv: 1890, pv: 4800, amt: 2181 }, { name: 'Jun', uv: 2390, pv: 3800, amt: 2500 }, { name: 'Jul', uv: 3490, pv: 4300, amt: 2100 }, ]}>
-                                        <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-700" />
-                                        <XAxis dataKey="name" className="text-slate-500" />
-                                        <YAxis className="text-slate-500" />
-                                        <Tooltip contentStyle={{ backgroundColor: 'rgb(var(--color-slate-800))', borderColor: 'rgb(var(--color-slate-700))', borderRadius: '0.75rem', fontSize: '0.875rem' }} itemStyle={{ color: 'rgb(var(--color-white))' }} labelStyle={{ color: 'rgb(var(--color-slate-400))' }} />
-                                        <Area type="monotone" dataKey="uv" stroke="#ef4444" fillOpacity={1} fill="url(#colorRed)" />
-                                        <defs>
-                                            <linearGradient id="colorRed" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
-                                                <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                    </AreaChart>
-                                </ResponsiveContainer>
+                    </div>
+
+                    <div className="flex items-center gap-2 md:gap-4">
+                        <div className="hidden lg:flex items-center relative mr-2">
+                            <Icons.Search className="absolute left-3 w-4 h-4 text-slate-400" />
+                            <input 
+                                type="text" 
+                                placeholder="Search everything..." 
+                                className="bg-slate-100 dark:bg-slate-900/50 border-none rounded-full py-2 pl-10 pr-4 text-sm w-64 focus:ring-2 focus:ring-red-500/20 transition-all dark:text-white"
+                            />
+                        </div>
+                        
+                        <div className="flex items-center gap-1 md:gap-2">
+                            <HeaderAction icon={Icons.Bell} badgeCount={getBadgeCount('requests')} />
+                            <HeaderAction icon={Icons.MessageSquare} />
+                            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1 md:mx-2 hidden sm:block" />
+                            <button className="p-1 rounded-full hover:ring-2 hover:ring-red-500/20 transition-all">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-red-600 to-rose-400 flex items-center justify-center text-white font-bold text-xs shadow-lg">
+                                    {adminUser?.name?.charAt(0) || 'A'}
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                {/* Content View */}
+                <main className="flex-1 p-4 md:p-8 overflow-y-auto scrollbar-hide">
+                    {error && (
+                        <div className="max-w-4xl mx-auto py-12 px-4 text-center">
+                            <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <Icons.AlertTriangle className="w-10 h-10 text-red-600" />
                             </div>
-                            <DispatchMapView drivers={users.filter(u => u.role === UserRole.DRIVER && u.status === UserStatus.ACTIVE)} jobs={jobs.filter(j => j.status === JobStatus.ACCEPTED)} />
+                            <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Something went wrong</h2>
+                            <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md mx-auto">{error}</p>
+                            <button 
+                                onClick={() => { setError(null); fetchData(); }} 
+                                className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-red-600/20 active:scale-95"
+                            >
+                                Reconnect to Server
+                            </button>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {activeTab === 'trips' && (
-                    <div className="space-y-8">
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Trips Management</h1>
-                        {badgeSettings && <TripsView jobs={jobs} onSelectJob={setSelectedJob} badgeSettings={badgeSettings} />}
-                    </div>
-                )}
+                    {!error && (
+                        <div className="max-w-[1600px] mx-auto animate-fade-in-up">
+                            {activeTab === 'dashboard' && stats && (
+                                <div className="space-y-10">
+                                    <PageHeader title="Overview" icon={Icons.LayoutDashboard} onBack={() => {}} />
+                                    
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        <StatCard 
+                                            title="Total Users" 
+                                            value={stats.totalUsers} 
+                                            icon={<Icons.Users className="w-5 h-5" />} 
+                                            trend="+12.5%"
+                                            onClick={() => setActiveTab('users')} 
+                                        />
+                                        <StatCard 
+                                            title="Total Jobs" 
+                                            value={stats.totalJobs} 
+                                            icon={<Icons.Route className="w-5 h-5" />} 
+                                            trend="+8.2%"
+                                            onClick={() => setActiveTab('trips')} 
+                                        />
+                                        <StatCard 
+                                            title="Revenue" 
+                                            value={`$${stats.revenue}`} 
+                                            icon={<Icons.DollarSign className="w-5 h-5" />} 
+                                            trend="+24.1%"
+                                            onClick={() => {}} 
+                                        />
+                                        <StatCard 
+                                            title="Active Drivers" 
+                                            value={stats.activeDrivers} 
+                                            icon={<Icons.Car className="w-5 h-5" />} 
+                                            trend="+3.4%"
+                                            onClick={() => setActiveTab('users')} 
+                                        />
+                                    </div>
 
-                {activeTab === 'users' && (
-                    <div className="space-y-8">
-                        <div className="flex justify-between items-center">
-                            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Users Management</h1>
-                            
-                            {/* Role Filter */}
-                            <div className="flex bg-white dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
-                                <button 
-                                    onClick={() => setFilterRole('ALL')}
-                                    className={`px-4 py-2 text-sm font-bold rounded-md transition-all ${filterRole === 'ALL' ? 'bg-black text-white' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-                                >
-                                    All
-                                </button>
-                                <button 
-                                    onClick={() => setFilterRole('DRIVER')}
-                                    className={`px-4 py-2 text-sm font-bold rounded-md transition-all ${filterRole === 'DRIVER' ? 'bg-black text-white' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-                                >
-                                    Drivers
-                                </button>
-                                <button 
-                                    onClick={() => setFilterRole('CLIENT')}
-                                    className={`px-4 py-2 text-sm font-bold rounded-md transition-all ${filterRole === 'CLIENT' ? 'bg-black text-white' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-                                >
-                                    Clients
-                                </button>
-                            </div>
-                        </div>
+                                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                                        <div className="xl:col-span-2 bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:shadow-md">
+                                            <div className="flex items-center justify-between mb-8">
+                                                <div>
+                                                    <h3 className="font-black text-xl text-slate-900 dark:text-white tracking-tight">Revenue Analytics</h3>
+                                                    <p className="text-sm text-slate-400 font-medium">Platform earnings performance</p>
+                                                </div>
+                                                <div className="flex bg-slate-50 dark:bg-slate-900 p-1 rounded-lg border border-slate-100 dark:border-slate-700">
+                                                    <button className="px-3 py-1 text-[10px] font-bold text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">7D</button>
+                                                    <button className="px-3 py-1 text-[10px] font-bold bg-white dark:bg-slate-800 text-red-600 rounded-md shadow-sm border border-slate-100 dark:border-slate-700">30D</button>
+                                                    <button className="px-3 py-1 text-[10px] font-bold text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">1Y</button>
+                                                </div>
+                                            </div>
+                                            <div className="h-[400px]">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <AreaChart data={[ { name: 'Jan', uv: 4000, pv: 2400 }, { name: 'Feb', uv: 3000, pv: 1398 }, { name: 'Mar', uv: 2000, pv: 9800 }, { name: 'Apr', uv: 2780, pv: 3908 }, { name: 'May', uv: 1890, pv: 4800 }, { name: 'Jun', uv: 2390, pv: 3800 }, { name: 'Jul', uv: 3490, pv: 4300 }, ]}>
+                                                        <defs>
+                                                            <linearGradient id="colorRed" x1="0" y1="0" x2="0" y2="1">
+                                                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
+                                                                <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-slate-100 dark:stroke-slate-700/50" />
+                                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} dy={10} />
+                                                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} />
+                                                        <Tooltip 
+                                                            contentStyle={{ 
+                                                                backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                                                                border: 'none', 
+                                                                borderRadius: '16px', 
+                                                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                                                backdropFilter: 'blur(8px)'
+                                                            }} 
+                                                            itemStyle={{ color: '#ef4444', fontWeight: 800 }}
+                                                            labelStyle={{ color: '#64748b', fontWeight: 700, marginBottom: '4px' }}
+                                                        />
+                                                        <Area type="monotone" dataKey="uv" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#colorRed)" />
+                                                    </AreaChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
 
-                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full text-sm text-left">
-                                    <thead className="bg-slate-50 dark:bg-slate-900 text-slate-500 font-bold uppercase text-xs">
-                                        <tr>
-                                            <th className="p-4">Name</th>
-                                            <th className="p-4">Email</th>
-                                            <th className="p-4">Role</th>
-                                            <th className="p-4">Status</th>
-                                            <th className="p-4">Join Date</th>
-                                            <th className="p-4 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                                        {users
-                                            .filter(u => filterRole === 'ALL' || u.role === filterRole)
-                                            .map(u => (
-                                            <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer" onClick={() => setSelectedUser(u)}>
-                                                <td className="p-4 font-bold dark:text-white">
-                                                    {u.name}
-                                                    {u.paymentVerificationStatus === 'PENDING' && (
-                                                        <span className="ml-2 inline-block w-2 h-2 bg-amber-500 rounded-full animate-pulse" title="Pending Payment Verification" />
+                                        <div className="flex flex-col gap-8">
+                                            <div className="flex-1">
+                                                <DispatchMapView drivers={users.filter(u => u.role === UserRole.DRIVER && u.status === UserStatus.ACTIVE)} jobs={jobs.filter(j => j.status === JobStatus.ACCEPTED)} />
+                                            </div>
+                                            <div className="bg-gradient-to-br from-red-600 to-rose-700 p-8 rounded-3xl shadow-xl shadow-red-900/20 text-white relative overflow-hidden group">
+                                                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                                                    <Icons.Shield className="w-32 h-32" />
+                                                </div>
+                                                <h3 className="text-2xl font-black mb-2 relative z-10">System Ready</h3>
+                                                <p className="text-red-100 text-sm font-medium mb-6 relative z-10">All systems operational. Fleet tracking is active and secure.</p>
+                                                <button onClick={() => setActiveTab('settings')} className="bg-white/20 backdrop-blur-md hover:bg-white/30 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all relative z-10">
+                                                    Manage Security
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'trips' && (
+                                <div className="space-y-8">
+                                    <PageHeader title="Trips Management" icon={Icons.Route} onBack={() => setActiveTab('dashboard')} />
+                                    {badgeSettings && <TripsView jobs={jobs} onSelectJob={setSelectedJob} badgeSettings={badgeSettings} />}
+                                </div>
+                            )}
+
+                            {activeTab === 'users' && (
+                                <div className="space-y-8">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <PageHeader title="Users Management" icon={Icons.Users} onBack={() => setActiveTab('dashboard')} />
+                                        
+                                        <div className="flex bg-white dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700 shadow-sm">
+                                            <FilterTab active={filterRole === 'ALL'} onClick={() => setFilterRole('ALL')} label="All Users" />
+                                            <FilterTab active={filterRole === 'DRIVER'} onClick={() => setFilterRole('DRIVER')} label="Drivers" />
+                                            <FilterTab active={filterRole === 'CLIENT'} onClick={() => setFilterRole('CLIENT')} label="Clients" />
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full text-sm text-left">
+                                                <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+                                                    <tr>
+                                                        <th className="px-8 py-5">User Identification</th>
+                                                        <th className="px-8 py-5">Email Address</th>
+                                                        <th className="px-8 py-5">Security Role</th>
+                                                        <th className="px-8 py-5">Status</th>
+                                                        <th className="px-8 py-5">Registration</th>
+                                                        <th className="px-8 py-5 text-right">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                                                    {users.filter(u => (filterRole === 'ALL' || u.role === filterRole) && u.email !== 'jclott77@gmail.com').length === 0 ? (
+                                                        <tr>
+                                                            <td colSpan={6} className="px-8 py-20 text-center text-slate-400 font-medium italic">No users found matching the current criteria.</td>
+                                                        </tr>
+                                                    ) : (
+                                                        users
+                                                            .filter(u => (filterRole === 'ALL' || u.role === filterRole) && u.email !== 'jclott77@gmail.com')
+                                                            .map(u => (
+                                                            <tr key={u.id || Math.random()} className="group hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors" onClick={() => setSelectedUser(u)}>
+                                                                <td className="px-8 py-5">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 font-black text-xs">
+                                                                            {u.name?.charAt(0)}
+                                                                        </div>
+                                                                        <div className="flex flex-col">
+                                                                            <span className="font-bold text-slate-900 dark:text-white group-hover:text-red-600 transition-colors">
+                                                                                {u.name || 'Unknown User'}
+                                                                            </span>
+                                                                            {u?.paymentVerificationStatus === 'PENDING' && (
+                                                                                <span className="text-[10px] text-amber-500 font-bold uppercase tracking-tighter">Needs Verification</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-8 py-5 text-slate-500 font-medium">{u.email || 'No Email'}</td>
+                                                                <td className="px-8 py-5">
+                                                                    <span className="px-3 py-1 bg-slate-100 dark:bg-slate-700 rounded-full text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-tighter border border-slate-200 dark:border-slate-600">
+                                                                        {u.role || 'GUEST'}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-8 py-5"><StatusBadge status={u.status} /></td>
+                                                                <td className="px-8 py-5 text-slate-400 font-medium">{new Date(u.joinDate || Date.now()).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</td>
+                                                                <td className="px-8 py-5 text-right">
+                                                                    <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center ml-auto transition-all">
+                                                                        <Icons.ChevronRight className="w-5 h-5" />
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))
                                                     )}
-                                                </td>
-                                                <td className="p-4 text-slate-500">{u.email}</td>
-                                                <td className="p-4 text-slate-700 dark:text-slate-300">{u.role}</td>
-                                                <td className="p-4"><StatusBadge status={u.status} /></td>
-                                                <td className="p-4 text-slate-500">{new Date(u.joinDate || '').toLocaleDateString()}</td>
-                                                <td className="p-4 text-right">
-                                                    <button className="text-blue-600 font-bold text-xs hover:underline">View</button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'pricing' && pricingConfig && (
-                    <div className="space-y-8">
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Trip Fares</h1>
-                        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700">
-                            <h3 className="font-bold text-lg mb-4 dark:text-white">Base Fares & Tiers</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Base Fare</label>
-                                    <input type="number" value={pricingConfig.baseFare} onChange={e => setPricingConfig({...pricingConfig, baseFare: parseFloat(e.target.value)})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Commission Rate (%)</label>
-                                    <input type="number" value={(pricingConfig.commissionRate || 0) * 100} onChange={e => setPricingConfig({...pricingConfig, commissionRate: parseFloat(e.target.value) / 100})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" />
-                                </div>
-                            </div>
-                            <h3 className="font-bold text-lg mb-4 dark:text-white">Tier Rates (per km)</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                {Object.keys(pricingConfig).filter(key => key.startsWith('tier')).map(key => (
-                                    <div key={key}>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{key.replace('tier', 'Tier ').replace('Rate', ' Rate')}</label>
-                                        <input type="number" value={(pricingConfig as any)[key]} onChange={e => setPricingConfig({...pricingConfig, [key]: parseFloat(e.target.value)})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" />
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
-                            <h3 className="font-bold text-lg mb-4 dark:text-white">Vehicle Type Multipliers</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                {Object.keys(pricingConfig.multipliers).map(key => (
-                                    <div key={key}>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{key}</label>
-                                        <input type="number" value={pricingConfig.multipliers[key]} onChange={e => setPricingConfig({...pricingConfig, multipliers: {...pricingConfig.multipliers, [key]: parseFloat(e.target.value)}})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white" />
+                                </div>
+                            )}
+
+                            {activeTab === 'pricing' && pricingConfig && (
+                                <div className="space-y-8">
+                                    <PageHeader title="Trip Fares" icon={Icons.DollarSign} onBack={() => setActiveTab('dashboard')} />
+                                    <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                                        <div className="flex items-center gap-3 mb-8">
+                                            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-xl flex items-center justify-center text-green-600">
+                                                <Icons.DollarSign className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-black text-xl text-slate-900 dark:text-white tracking-tight">Base Fares & Tiers</h3>
+                                                <p className="text-sm text-slate-400 font-medium">Standardize your platform economy</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Base Platform Fee</label>
+                                                <div className="relative">
+                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                                                    <input type="number" value={pricingConfig.baseFare} onChange={e => setPricingConfig({...pricingConfig, baseFare: parseFloat(e.target.value)})} className="w-full pl-8 pr-4 py-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl dark:text-white font-black text-lg focus:ring-2 focus:ring-red-500/20 outline-none transition-all" />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Platform Commission (%)</label>
+                                                <div className="relative">
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                                                    <input type="number" value={(pricingConfig.commissionRate || 0) * 100} onChange={e => setPricingConfig({...pricingConfig, commissionRate: parseFloat(e.target.value) / 100})} className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-2xl dark:text-white font-black text-lg focus:ring-2 focus:ring-red-500/20 outline-none transition-all" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <h3 className="font-black text-sm text-slate-400 uppercase tracking-[0.2em] mb-6">Tiered Distance Rates (per km)</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                                            {Object.keys(pricingConfig).filter(key => key.startsWith('tier')).map(key => (
+                                                <div key={key} className="space-y-2">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{key.replace('tier', 'Tier ').replace('Rate', ' Rate')}</label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                                                        <input type="number" step="0.01" value={(pricingConfig as any)[key]} onChange={e => setPricingConfig({...pricingConfig, [key]: parseFloat(e.target.value)})} className="w-full pl-8 pr-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white font-bold focus:ring-2 focus:ring-red-500/20 outline-none transition-all" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <h3 className="font-black text-sm text-slate-400 uppercase tracking-[0.2em] mb-6">Vehicle Multipliers</h3>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 mb-10">
+                                            {Object.keys(pricingConfig.multipliers).map(key => (
+                                                <div key={key} className="space-y-2">
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{key}</label>
+                                                    <input type="number" step="0.1" value={pricingConfig.multipliers[key]} onChange={e => setPricingConfig({...pricingConfig, multipliers: {...pricingConfig.multipliers, [key]: parseFloat(e.target.value)}})} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl dark:text-white font-bold focus:ring-2 focus:ring-red-500/20 outline-none transition-all text-center" />
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="pt-8 border-t border-slate-100 dark:border-slate-700/50 flex flex-col sm:flex-row items-center justify-between gap-6">
+                                            <div className="flex gap-8">
+                                                <label className="flex items-center gap-3 cursor-pointer group">
+                                                    <input type="checkbox" checked={pricingConfig.enablePeakPricing} onChange={e => setPricingConfig({...pricingConfig, enablePeakPricing: e.target.checked})} className="w-5 h-5 rounded-lg border-slate-300 text-red-600 focus:ring-red-500/20 transition-all" />
+                                                    <span className="text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-red-600 transition-colors">Peak Hours</span>
+                                                </label>
+                                                <label className="flex items-center gap-3 cursor-pointer group">
+                                                    <input type="checkbox" checked={pricingConfig.enableWeekendPricing} onChange={e => setPricingConfig({...pricingConfig, enableWeekendPricing: e.target.checked})} className="w-5 h-5 rounded-lg border-slate-300 text-red-600 focus:ring-red-500/20 transition-all" />
+                                                    <span className="text-sm font-bold text-slate-600 dark:text-slate-300 group-hover:text-red-600 transition-colors">Weekend Rates</span>
+                                                </label>
+                                            </div>
+                                            <button onClick={() => handleUpdatePricing(pricingConfig)} className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-10 py-4 rounded-2xl font-black transition-all shadow-lg shadow-red-600/20 active:scale-95 flex items-center justify-center gap-2">
+                                                <Icons.Save className="w-5 h-5" />
+                                                Publish Pricing
+                                            </button>
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
-                            <h3 className="font-bold text-lg mb-4 dark:text-white">Dynamic Pricing</h3>
-                            <div className="space-y-4">
-                                <label className="flex items-center gap-3">
-                                    <input type="checkbox" checked={pricingConfig.enablePeakPricing} onChange={e => setPricingConfig({...pricingConfig, enablePeakPricing: e.target.checked})} className="w-5 h-5 accent-blue-600" />
-                                    <span className="dark:text-white">Enable Peak Pricing</span>
-                                    {pricingConfig.enablePeakPricing && <input type="number" value={pricingConfig.peakMultiplier} onChange={e => setPricingConfig({...pricingConfig, peakMultiplier: parseFloat(e.target.value)})} className="p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg w-24 dark:text-white" />}
-                                </label>
-                                <label className="flex items-center gap-3">
-                                    <input type="checkbox" checked={pricingConfig.enableWeekendPricing} onChange={e => setPricingConfig({...pricingConfig, enableWeekendPricing: e.target.checked})} className="w-5 h-5 accent-blue-600" />
-                                    <span className="dark:text-white">Enable Weekend Pricing</span>
-                                    {pricingConfig.enableWeekendPricing && <input type="number" value={pricingConfig.weekendMultiplier} onChange={e => setPricingConfig({...pricingConfig, weekendMultiplier: parseFloat(e.target.value)})} className="p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg w-24 dark:text-white" />}
-                                </label>
-                            </div>
-                            <button onClick={() => handleUpdatePricing(pricingConfig)} className="mt-8 bg-black text-white px-6 py-3 rounded-xl font-bold">Save Pricing</button>
-                        </div>
-                    </div>
-                )}
+                                </div>
+                            )}
 
-                {activeTab === 'mats' && thresholds && (
-                    <MatsView thresholds={thresholds} onUpdate={handleUpdateThresholds} />
-                )}
+                            {activeTab === 'mats' && thresholds && (
+                                <MatsView thresholds={thresholds} onUpdate={handleUpdateThresholds} onBack={() => setIsSidebarOpen(true)} />
+                            )}
 
-                {activeTab === 'support' && supportSettings && (
-                    <SupportView settings={supportSettings} onUpdate={handleUpdateSupportSettings} />
-                )}
-                
-                {activeTab === 'disputes' && jobs && (
-                    <div className="space-y-8">
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Dispute Resolution</h1>
-                        <DisputesView jobs={jobs} onResolve={handleResolveDispute} />
-                    </div>
-                )}
-
-                {activeTab === 'marketing' && (
-                     <div className="space-y-8">
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Marketing & Promotions</h1>
-                        <MarketingView onUpdate={fetchData} />
-                    </div>
-                )}
-
-                {activeTab === 'broadcast' && (
-                     <div className="space-y-8">
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">System Broadcast</h1>
-                        <BroadcastView />
-                    </div>
-                )}
-                
-                {activeTab === 'integrations' && integrationsConfig && (
-                    <div className="space-y-8 animate-fade-in">
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                            <Icons.Key className="w-8 h-8 text-blue-600" />
-                            API Integrations
-                        </h1>
-                        <p className="text-slate-500 dark:text-slate-400">Manage your third-party API keys for Maps, AI, Flight Tracking, and Payments.</p>
-
-                        <div className="bg-slate-900 rounded-xl border border-slate-700 p-6 space-y-6 shadow-xl">
+                            {activeTab === 'support' && supportSettings && (
+                                <SupportView settings={supportSettings} onUpdate={handleUpdateSupportSettings} onBack={() => setIsSidebarOpen(true)} />
+                            )}
                             
-                            {/* Admin Email */}
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Primary Admin Email</label>
-                                <input 
-                                    type="text" 
-                                    value={integrationsConfig.primaryAdminEmail || ''} 
-                                    onChange={e => setIntegrationsConfig({...integrationsConfig, primaryAdminEmail: e.target.value})} 
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors"
-                                />
-                                <p className="text-[10px] text-slate-500 mt-1">Only this email can access this panel.</p>
-                            </div>
-
-                            {/* Google Maps */}
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Google Maps API Key</label>
-                                <div className="relative">
-                                    <input 
-                                        type="password" 
-                                        value={integrationsConfig.googleMapsKey} 
-                                        onChange={e => setIntegrationsConfig({...integrationsConfig, googleMapsKey: e.target.value})} 
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors pr-10"
-                                    />
-                                    <Icons.Eye className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 cursor-pointer hover:text-white" />
+                            {activeTab === 'disputes' && jobs && (
+                                <div className="space-y-8">
+                                    <PageHeader title="Dispute Resolution" icon={Icons.Gavel} onBack={() => setIsSidebarOpen(true)} />
+                                    <DisputesView jobs={jobs} onResolve={handleResolveDispute} />
                                 </div>
-                            </div>
+                            )}
 
-                            {/* Google Gemini */}
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Google Gemini AI Key</label>
-                                <div className="relative">
-                                    <input 
-                                        type="password" 
-                                        value={integrationsConfig.googleGeminiKey || ''} 
-                                        onChange={e => setIntegrationsConfig({...integrationsConfig, googleGeminiKey: e.target.value})} 
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors pr-10"
-                                    />
-                                    <Icons.Eye className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 cursor-pointer hover:text-white" />
+                            {activeTab === 'marketing' && (
+                                 <div className="space-y-8">
+                                    <PageHeader title="Marketing" icon={Icons.Megaphone} onBack={() => setIsSidebarOpen(true)} />
+                                    <MarketingView onUpdate={fetchData} />
                                 </div>
-                            </div>
+                            )}
 
-                            {/* FlightAware */}
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">FlightAware AeroAPI Key</label>
-                                <div className="relative">
-                                    <input 
-                                        type="password" 
-                                        value={integrationsConfig.flightAwareKey || ''} 
-                                        onChange={e => setIntegrationsConfig({...integrationsConfig, flightAwareKey: e.target.value})} 
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors pr-10"
-                                    />
-                                    <Icons.Eye className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 cursor-pointer hover:text-white" />
+                            {activeTab === 'broadcast' && (
+                                 <div className="space-y-8">
+                                    <PageHeader title="System Broadcast" icon={Icons.Bell} onBack={() => setIsSidebarOpen(true)} />
+                                    <BroadcastView />
                                 </div>
-                            </div>
+                            )}
+                            
+                            {activeTab === 'integrations' && integrationsConfig && (
+                                <div className="space-y-8 animate-fade-in">
+                                    <PageHeader title="API Integrations" icon={Icons.Key} onBack={() => setActiveTab('dashboard')} />
+                                    <p className="text-slate-500 dark:text-slate-400 -mt-6">Manage your third-party API keys for Maps, AI, Flight Tracking, and Payments.</p>
 
-                            {/* Stripe */}
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <Icons.DollarSign className="w-5 h-5 text-blue-500" />
-                                    <h3 className="font-bold text-white">Stripe Payments</h3>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Publishable Key</label>
-                                        <input 
-                                            type="text" 
-                                            value={integrationsConfig.stripePublishableKey} 
-                                            onChange={e => setIntegrationsConfig({...integrationsConfig, stripePublishableKey: e.target.value})} 
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white font-mono text-xs focus:border-blue-500 outline-none transition-colors"
-                                            placeholder="pk_test_..."
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Secret Key</label>
-                                        <input 
-                                            type="password" 
-                                            value={integrationsConfig.stripeSecretKey} 
-                                            onChange={e => setIntegrationsConfig({...integrationsConfig, stripeSecretKey: e.target.value})} 
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white font-mono text-xs focus:border-blue-500 outline-none transition-colors"
-                                            placeholder="sk_test_..."
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Twilio SMS */}
-                            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-                                <div className="flex justify-between items-center mb-4">
-                                    <div className="flex items-center gap-2">
-                                        <Icons.MessageSquare className="w-5 h-5 text-blue-500" />
-                                        <h3 className="font-bold text-white">SMS Notifications (Twilio)</h3>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-xs font-bold text-blue-400 rounded transition-colors uppercase">Auto-Fill Credentials</button>
-                                        <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${integrationsConfig.twilioEnabled ? 'bg-green-500' : 'bg-slate-600'}`} onClick={() => setIntegrationsConfig({...integrationsConfig, twilioEnabled: !integrationsConfig.twilioEnabled})}>
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${integrationsConfig.twilioEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </div>
-                                        <span className="text-xs font-bold text-white uppercase">{integrationsConfig.twilioEnabled ? 'Enabled' : 'Disabled'}</span>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Admin Mobile Number (For Alerts)</label>
-                                        <input 
-                                            type="text" 
-                                            value={integrationsConfig.adminMobileNumber} 
-                                            onChange={e => setIntegrationsConfig({...integrationsConfig, adminMobileNumber: e.target.value})} 
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors"
-                                        />
-                                        <p className="text-[10px] text-slate-500 mt-1">Receive SMS alerts when new bookings are made.</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">From Number / Sender ID</label>
-                                        <input 
-                                            type="text" 
-                                            value={integrationsConfig.twilioFromNumber} 
-                                            onChange={e => setIntegrationsConfig({...integrationsConfig, twilioFromNumber: e.target.value})} 
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Account SID</label>
-                                        <input 
-                                            type="text" 
-                                            value={integrationsConfig.twilioAccountSid} 
-                                            onChange={e => setIntegrationsConfig({...integrationsConfig, twilioAccountSid: e.target.value})} 
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white font-mono text-xs focus:border-blue-500 outline-none transition-colors"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Auth Token</label>
-                                        <div className="relative">
+                                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-3 md:p-6 space-y-6 shadow-xl overflow-hidden">
+                                        
+                                        {/* Admin Email */}
+                                        <div className="bg-white dark:bg-slate-800/50 rounded-lg p-3 md:p-4 border border-slate-200 dark:border-slate-700">
+                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">Primary Admin Email</label>
                                             <input 
-                                                type="password" 
-                                                value={integrationsConfig.twilioAuthToken || ''} 
-                                                onChange={e => setIntegrationsConfig({...integrationsConfig, twilioAuthToken: e.target.value})} 
-                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white font-mono text-xs focus:border-blue-500 outline-none transition-colors pr-10"
+                                                type="text" 
+                                                value={integrationsConfig.primaryAdminEmail || ''} 
+                                                onChange={e => setIntegrationsConfig({...integrationsConfig, primaryAdminEmail: e.target.value})} 
+                                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors"
                                             />
-                                            <Icons.Eye className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 cursor-pointer hover:text-white" />
+                                            <p className="text-[10px] text-slate-500 mt-1">Only this email can access this panel.</p>
+                                        </div>
+
+                                        {/* Google Maps */}
+                                        <div className="bg-white dark:bg-slate-800/50 rounded-lg p-3 md:p-4 border border-slate-200 dark:border-slate-700">
+                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">Google Maps API Key</label>
+                                            <div className="relative">
+                                                <input 
+                                                    type={visibleKeys['googleMaps'] ? "text" : "password"}
+                                                    value={integrationsConfig.googleMapsKey} 
+                                                    onChange={e => setIntegrationsConfig({...integrationsConfig, googleMapsKey: e.target.value})} 
+                                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors pr-10"
+                                                />
+                                                <button onClick={() => toggleVisibility('googleMaps')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-white">
+                                                    {visibleKeys['googleMaps'] ? <Icons.EyeOff className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Google Gemini */}
+                                        <div className="bg-white dark:bg-slate-800/50 rounded-lg p-3 md:p-4 border border-slate-200 dark:border-slate-700">
+                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">Google Gemini AI Key</label>
+                                            <div className="relative">
+                                                <input 
+                                                    type={visibleKeys['googleGemini'] ? "text" : "password"}
+                                                    value={integrationsConfig.googleGeminiKey || ''} 
+                                                    onChange={e => setIntegrationsConfig({...integrationsConfig, googleGeminiKey: e.target.value})} 
+                                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors pr-10"
+                                                />
+                                                <button onClick={() => toggleVisibility('googleGemini')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-white">
+                                                    {visibleKeys['googleGemini'] ? <Icons.EyeOff className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* FlightAware */}
+                                        <div className="bg-white dark:bg-slate-800/50 rounded-lg p-3 md:p-4 border border-slate-200 dark:border-slate-700">
+                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">FlightAware AeroAPI Key</label>
+                                            <div className="relative">
+                                                <input 
+                                                    type={visibleKeys['flightAware'] ? "text" : "password"}
+                                                    value={integrationsConfig.flightAwareKey || ''} 
+                                                    onChange={e => setIntegrationsConfig({...integrationsConfig, flightAwareKey: e.target.value})} 
+                                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors pr-10"
+                                                />
+                                                <button onClick={() => toggleVisibility('flightAware')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-white">
+                                                    {visibleKeys['flightAware'] ? <Icons.EyeOff className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Stripe */}
+                                        <div className="bg-white dark:bg-slate-800/50 rounded-lg p-3 md:p-4 border border-slate-200 dark:border-slate-700">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <Icons.DollarSign className="w-5 h-5 text-blue-500" />
+                                                <h3 className="font-bold text-slate-900 dark:text-white">Stripe Payments</h3>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Publishable Key</label>
+                                                    <div className="relative">
+                                                        <input 
+                                                            type={visibleKeys['stripePublic'] ? "text" : "password"}
+                                                            value={integrationsConfig.stripePublishableKey} 
+                                                            onChange={e => setIntegrationsConfig({...integrationsConfig, stripePublishableKey: e.target.value})} 
+                                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-white font-mono text-xs focus:border-blue-500 outline-none transition-colors pr-10"
+                                                            placeholder="pk_test_..."
+                                                        />
+                                                        <button onClick={() => toggleVisibility('stripePublic')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-white">
+                                                            {visibleKeys['stripePublic'] ? <Icons.EyeOff className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Secret Key</label>
+                                                    <div className="relative">
+                                                        <input 
+                                                            type={visibleKeys['stripeSecret'] ? "text" : "password"}
+                                                            value={integrationsConfig.stripeSecretKey} 
+                                                            onChange={e => setIntegrationsConfig({...integrationsConfig, stripeSecretKey: e.target.value})} 
+                                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-white font-mono text-xs focus:border-blue-500 outline-none transition-colors pr-10"
+                                                            placeholder="sk_test_..."
+                                                        />
+                                                        <button onClick={() => toggleVisibility('stripeSecret')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-white">
+                                                            {visibleKeys['stripeSecret'] ? <Icons.EyeOff className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Twilio SMS */}
+                                        <div className="bg-white dark:bg-slate-800/50 rounded-lg p-3 md:p-4 border border-slate-200 dark:border-slate-700">
+                                            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <Icons.MessageSquare className="w-5 h-5 text-blue-500" />
+                                                    <h3 className="font-bold text-slate-900 dark:text-white">SMS Notifications (Twilio)</h3>
+                                                </div>
+                                                <div className="flex items-center gap-2 self-start md:self-auto">
+                                                    <button className="px-3 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-xs font-bold text-blue-600 dark:text-blue-400 rounded transition-colors uppercase whitespace-nowrap">Auto-Fill Credentials</button>
+                                                    <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${integrationsConfig.twilioEnabled ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'}`} onClick={() => setIntegrationsConfig({...integrationsConfig, twilioEnabled: !integrationsConfig.twilioEnabled})}>
+                                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${integrationsConfig.twilioEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                                    </div>
+                                                    <span className="text-xs font-bold text-slate-600 dark:text-white uppercase">{integrationsConfig.twilioEnabled ? 'Enabled' : 'Disabled'}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Admin Mobile Number (For Alerts)</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={integrationsConfig.adminMobileNumber} 
+                                                        onChange={e => setIntegrationsConfig({...integrationsConfig, adminMobileNumber: e.target.value})} 
+                                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors"
+                                                    />
+                                                    <p className="text-[10px] text-slate-500 mt-1">Receive SMS alerts when new bookings are made.</p>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">From Number / Sender ID</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={integrationsConfig.twilioFromNumber} 
+                                                        onChange={e => setIntegrationsConfig({...integrationsConfig, twilioFromNumber: e.target.value})} 
+                                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Account SID</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={integrationsConfig.twilioAccountSid} 
+                                                        onChange={e => setIntegrationsConfig({...integrationsConfig, twilioAccountSid: e.target.value})} 
+                                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-white font-mono text-xs focus:border-blue-500 outline-none transition-colors"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Auth Token</label>
+                                                    <div className="relative">
+                                                        <input 
+                                                            type={visibleKeys['twilioAuth'] ? "text" : "password"}
+                                                            value={integrationsConfig.twilioAuthToken || ''} 
+                                                            onChange={e => setIntegrationsConfig({...integrationsConfig, twilioAuthToken: e.target.value})} 
+                                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-white font-mono text-xs focus:border-blue-500 outline-none transition-colors pr-10"
+                                                        />
+                                                        <button onClick={() => toggleVisibility('twilioAuth')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-white">
+                                                            {visibleKeys['twilioAuth'] ? <Icons.EyeOff className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Save Button */}
+                                        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-center md:justify-end relative items-center gap-4">
+                                            {showIntegrationsSaved && (
+                                                <div className="absolute top-[-50px] md:top-auto md:right-48 bg-green-600 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-lg animate-fade-in flex items-center gap-2 z-10 whitespace-nowrap">
+                                                    <Icons.Check className="w-3 h-3" /> Changes Saved!
+                                                </div>
+                                            )}
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleUpdateIntegrations(integrationsConfig); }} 
+                                                className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-900/20 transition-all active:scale-95 flex items-center gap-2"
+                                            >
+                                                <Icons.Save className="w-5 h-5" />
+                                                Save Changes
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            {/* Save Button */}
-                            <div className="pt-4 border-t border-slate-800 flex justify-end">
-                                <button 
-                                    onClick={() => handleUpdateIntegrations(integrationsConfig)} 
-                                    className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-900/20 transition-all active:scale-95 flex items-center gap-2"
-                                >
-                                    <Icons.Save className="w-5 h-5" />
-                                    Save Changes
-                                </button>
-                            </div>
+                            )}
+                            
+                            {activeTab === 'settings' && badgeSettings && (
+                                 <div className="space-y-8">
+                                    <PageHeader title="Global Settings" icon={Icons.Settings} onBack={() => setActiveTab('dashboard')} />
+                                    <SettingsView 
+                                        badgeSettings={badgeSettings} 
+                                        onUpdateBadges={handleUpdateBadges}
+                                        brandingSettings={brandingSettings}
+                                        onUpdateBranding={handleUpdateBranding}
+                                    />
+                                    
+                                    {/* DATA CLEANUP SECTION */}
+                                    <div className="pt-8 border-t border-slate-200 dark:border-slate-700">
+                                        <h3 className="text-red-600 font-bold mb-2 uppercase text-[10px] tracking-[0.2em] ml-1">Danger Zone</h3>
+                                        <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/50 p-6 rounded-3xl flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center text-red-600">
+                                                    <Icons.AlertTriangle className="w-6 h-6" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-black text-slate-900 dark:text-red-100 tracking-tight leading-none mb-1">Reset Database for Launch</h4>
+                                                    <p className="text-sm text-slate-500 dark:text-red-200/70 font-medium">Deletes ALL non-admin users, bookings, and test data.</p>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={() => setShowResetModal(true)}
+                                                className="bg-white hover:bg-red-50 text-red-600 border border-red-200 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-all active:scale-95"
+                                            >
+                                                Reset Data
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    </div>
-                )}
-                
-                {activeTab === 'settings' && badgeSettings && (
-                     <div className="space-y-8">
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Global Settings</h1>
-                        <SettingsView badgeSettings={badgeSettings} onUpdateBadges={handleUpdateBadges} />
-                    </div>
-                )}
+                    )}
+                </main>
+            </div>
 
-            </main>
-
+            {/* Modals */}
             {selectedUser && (
                 <UserDetailsModal user={selectedUser} onClose={() => setSelectedUser(null)} onUpdate={fetchData} onPayout={handleProcessPayout} />
             )}
             {selectedJob && (
                 <TripDetailsModal job={selectedJob} onClose={() => setSelectedJob(null)} onUpdate={fetchData} users={users} adminUser={adminUser} />
             )}
+            
+            {showResetModal && (
+                <ConfirmationModal
+                    title="DANGER: RESET DATABASE"
+                    message="This action will PERMANENTLY DELETE all drivers, clients, bookings, and chat history. Only the Admin account will remain. This action CANNOT be undone."
+                    confirmText="YES, DELETE EVERYTHING"
+                    cancelText="Cancel, Keep Data"
+                    confirmPhrase="DELETE"
+                    onConfirm={async () => {
+                        await mockBackend.cleanupDatabase();
+                        setShowResetModal(false);
+                        alert('Database has been cleaned successfully. The system is now ready for launch.');
+                        window.location.reload();
+                    }}
+                    onCancel={() => setShowResetModal(false)}
+                />
+            )}
         </div>
     );
+
 };

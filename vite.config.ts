@@ -14,31 +14,25 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
-          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+          includeAssets: ['favicon.png', 'apple-touch-icon.png', 'mask-icon.svg'],
           manifest: {
-            name: 'GetTransfer Clone',
-            short_name: 'GetTransfer',
-            description: 'GetTransfer Clone Application',
+            name: 'Tripfers Clone',
+            short_name: 'Tripfers',
+            description: 'Tripfers Clone Application',
             theme_color: '#ffffff',
             background_color: '#ffffff',
             display: 'standalone',
             start_url: '.',
             icons: [
               {
-                src: 'icon.svg',
+                src: 'favicon.png',
                 sizes: '192x192',
-                type: 'image/svg+xml'
+                type: 'image/png'
               },
               {
-                src: 'icon.svg',
+                src: 'favicon.png',
                 sizes: '512x512',
-                type: 'image/svg+xml'
-              },
-              {
-                src: 'icon.svg',
-                sizes: '512x512',
-                type: 'image/svg+xml',
-                purpose: 'any maskable'
+                type: 'image/png'
               }
             ]
           }

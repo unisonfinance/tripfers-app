@@ -6,10 +6,12 @@ import { ClientDashboard } from './pages/ClientDashboard';
 import { DriverDashboard } from './pages/DriverDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { MembershipSuccess } from './pages/MembershipSuccess';
-import { DevRoleSwitcher } from './components/DevRoleSwitcher';
 import { User, UserRole, UserStatus } from './types';
-import { mockBackend } from './services/mockBackend';
+import { backend } from './services/BackendService';
 import './i18n'; // Initialize i18n
+
+// Force refresh check
+
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -25,35 +27,80 @@ function App() {
       document.documentElement.classList.remove('dark');
     }
 
-    const storedUser = mockBackend.getCurrentUser();
+    const storedUser = backend.getCurrentUser();
     if (storedUser) {
       setUser(storedUser);
+      
+      // Safety Cleanup: Ensure only one admin record exists if this is the admin
+      if (storedUser.email === 'jclott77@gmail.com') {
+          backend.ensureSingleAdmin('jclott77@gmail.com', storedUser.id);
+      }
     } else {
       // DEV MODE ONLY: Auto-login for localhost testing if needed
       // Check if we are on production domains to avoid auto-login
       const hostname = window.location.hostname;
       if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
-           // Default to Gold Coast driver if no session exists for dev purposes
-          mockBackend.getUser('6').then(defaultUser => {
-            if (defaultUser) {
-              setUser(defaultUser);
-              localStorage.setItem('gettransfer_current_user', JSON.stringify(defaultUser));
-            }
-          });
+        // We will NOT auto-login as Admin to allow user to preview other roles easily
+        // Uncomment the lines below if you want to force Admin login
+        
+        /* 
+        // Attempt to login as Admin via Firebase to get a real token
+        backend.login('jclott77@gmail.com', 'Corina77&&').then(async (user) => {
+            setUser(user);
+            // Immediate cleanup for duplicates
+            await backend.ensureSingleAdmin('jclott77@gmail.com', user.id);
+        }).catch(err => {
+            console.error("Auto-login failed:", err);
+            // Fallback: Create a fake admin user only if network login fails
+            // This allows the UI to render but writes might fail if rules require auth
+            const adminUser: User = {
+                id: 'admin_master',
+                name: 'Super Admin',
+                email: 'jclott77@gmail.com',
+                role: UserRole.ADMIN,
+                status: UserStatus.ACTIVE,
+                joinDate: new Date().toISOString()
+            };
+            setUser(adminUser);
+            localStorage.setItem('tripfers_current_user', JSON.stringify(adminUser));
+        });
+        */
       }
     }
 
     // Load Google Maps script with API key from settings
     const loadGoogleMapsScript = async () => {
       try {
-        const config = await mockBackend.getIntegrations();
+        // CLEANUP: Ensure legacy admin is removed
+        await backend.deleteUserByEmail('admin@gmail.com');
+
+        // FAST PATH: Check LocalStorage first to load INSTANTLY
+        const cachedKey = localStorage.getItem('tripfers_google_maps_key');
+        let apiKeyToUse = cachedKey;
+
+        if (!apiKeyToUse) {
+            // SLOW PATH: Must wait for Backend if first time
+            const config = await backend.getIntegrations();
+            if (config.googleMapsKey) {
+                apiKeyToUse = config.googleMapsKey;
+                localStorage.setItem('tripfers_google_maps_key', apiKeyToUse);
+            }
+        } else {
+            // Background update: Check if key changed in DB, update for NEXT time
+            backend.getIntegrations().then(config => {
+                if (config.googleMapsKey && config.googleMapsKey !== cachedKey) {
+                    localStorage.setItem('tripfers_google_maps_key', config.googleMapsKey);
+                    console.log("Maps Key updated in background. Refresh to apply.");
+                }
+            });
+        }
         
         // Prevent loading multiple scripts if one already exists
-        if (config.googleMapsKey && !window.google && !document.getElementById('google-maps-script')) {
+        if (apiKeyToUse && !window.google && !document.getElementById('google-maps-script')) {
           const script = document.createElement('script');
           script.id = 'google-maps-script'; // Unique ID to prevent duplicates
           // Added 'drawing' library
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${config.googleMapsKey}&libraries=places,drawing`;
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKeyToUse}&libraries=places,drawing`;
           script.async = true;
           script.defer = true;
           
@@ -89,77 +136,161 @@ function App() {
   };
 
   const handleLogout = () => {
-    mockBackend.logout(); // Clear session
+    backend.logout(); // Clear session
     setUser(null);
     window.location.hash = '/';
     window.location.reload(); // Reload to clear the dev state if needed
   };
 
-  // --- DEV TOOL HANDLER ---
-  const handleDevSwitch = async (userId: string) => {
-    const targetUser = await mockBackend.getUser(userId);
-
-    if (targetUser) {
-        setUser(targetUser);
-        // Persist to local storage so it survives refresh in dev mode
-        localStorage.setItem('gettransfer_current_user', JSON.stringify(targetUser));
-    }
-  };
-
   // --- SUBDOMAIN ROUTING LOGIC ---
   const hostname = window.location.hostname;
-  const isAdminDomain = hostname.startsWith('admin.');
+  
+  // STRICT: Only 'admin.tripfers.com' is the Admin Portal
+  // Localhost defaults to Client Portal for easier development
+  // To test Admin on localhost, you can temporarily uncomment the localhost check or use a custom host
+  const isAdminDomain = hostname.startsWith('admin.'); 
+
+  console.log(`[App] Current Hostname: ${hostname} | Detected Mode: ${isAdminDomain ? 'ADMIN' : 'CLIENT'}`);
+
+  // Dynamic Favicon Switcher
+  useEffect(() => {
+    const updateFavicon = (url: string) => {
+      if (!url) return;
+      
+      // Add timestamp to bust cache
+      const cacheBustedUrl = `${url}${url.includes('?') ? '&' : '?'}v=${new Date().getTime()}`;
+      
+      // Remove existing icons to force browser update
+      const selectors = [
+        "link[rel*='icon']",
+        "link[rel='shortcut icon']",
+        "link[rel='apple-touch-icon']",
+        "link[rel='mask-icon']"
+      ];
+      
+      selectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(link => link.remove());
+      });
+
+      // Create new main favicon
+      const linkIcon = document.createElement('link');
+      linkIcon.rel = 'icon';
+      linkIcon.type = url.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
+      linkIcon.href = cacheBustedUrl;
+      document.head.appendChild(linkIcon);
+
+      // Create apple touch icon
+      const linkApple = document.createElement('link');
+      linkApple.rel = 'apple-touch-icon';
+      linkApple.href = cacheBustedUrl;
+      document.head.appendChild(linkApple);
+
+      // Log for debugging
+      console.log(`Favicon updated to: ${url}`);
+    };
+
+    const applyBranding = async () => {
+        let mainFavicon = '/favicon.png';
+        let adminFavicon = '/favicon_admin.png';
+
+        try {
+            if (backend.getBrandingSettings) {
+                const settings = await backend.getBrandingSettings();
+                if (settings.mainFaviconUrl && settings.mainFaviconUrl.trim() !== '') {
+                    mainFavicon = settings.mainFaviconUrl;
+                }
+                if (settings.adminFaviconUrl && settings.adminFaviconUrl.trim() !== '') {
+                    adminFavicon = settings.adminFaviconUrl;
+                }
+            }
+        } catch (e) {
+            console.warn("Failed to load branding settings", e);
+        }
+
+        let useAdminBranding = isAdminDomain;
+
+        // In development (localhost), toggle branding based on the active user role
+        // This allows testing both favicons without changing domains
+        if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+            useAdminBranding = user?.role === UserRole.ADMIN;
+        }
+
+        if (useAdminBranding) {
+            updateFavicon(adminFavicon);
+            document.title = 'Tripfers Admin Portal';
+        } else {
+            updateFavicon(mainFavicon);
+            // Optional: Set a default title for the main site if needed
+             if (document.title === 'Tripfers Admin Portal') document.title = 'Tripfers';
+        }
+    };
+
+    applyBranding();
+    
+    // Subscribe to backend changes to update favicon in real-time
+    const unsubscribe = backend.subscribe(applyBranding);
+    return () => unsubscribe();
+  }, [isAdminDomain, user]); // Added user dependency to update on role switch
 
   return (
     <Router>
-      {/* Dev Switcher Overlay - Only show on localhost or dev */}
-      {(hostname.includes('localhost') || hostname.includes('dev')) && (
-          <DevRoleSwitcher currentUser={user} onSwitch={handleDevSwitch} />
-      )}
-      
-      <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>
-        <Routes>
-          {/* ------------------------------------------------------------
-              ADMIN SUBDOMAIN ROUTING (admin.tripfers.com)
-              ------------------------------------------------------------ */}
-          {isAdminDomain ? (
-             <>
-                <Route path="/" element={
-                    user?.role === UserRole.ADMIN ? <AdminDashboard /> : <ClientDashboard user={null} onLogin={handleLogin} initialRole={UserRole.ADMIN} /> 
-                } />
-                <Route path="*" element={<Navigate to="/" replace />} />
-             </>
-          ) : (
-            /* ------------------------------------------------------------
-               MAIN DOMAIN ROUTING (tripfers.com)
-               ------------------------------------------------------------ */
-             <>
-                <Route path="/" element={
-                    !user ? <ClientDashboard user={null} onLogin={handleLogin} /> : 
+      <Routes>
+        {/* ------------------------------------------------------------
+            ADMIN SUBDOMAIN ROUTING (admin.tripfers.com)
+            ------------------------------------------------------------ */}
+        {isAdminDomain ? (
+           <>
+              <Route path="/" element={
+                  user?.role === UserRole.ADMIN ? (
+                    <AdminDashboard />
+                  ) : (
+                    <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>
+                      <ClientDashboard user={null} onLogin={handleLogin} initialRole={UserRole.ADMIN} />
+                    </Layout>
+                  )
+              } />
+              <Route path="*" element={<Navigate to="/" replace />} />
+           </>
+        ) : (
+          /* ------------------------------------------------------------
+             MAIN DOMAIN ROUTING (tripfers.com)
+             ------------------------------------------------------------ */
+           <>
+              <Route path="/" element={
+                  <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>
+                    {!user ? <ClientDashboard user={null} onLogin={handleLogin} /> : 
                     user.role === UserRole.DRIVER ? <Navigate to="/dashboard/driver" /> :
                     <ClientDashboard user={user} onLogin={handleLogin} />
-                } />
-                
-                <Route path="/dashboard/client" element={
+                    }
+                  </Layout>
+              } />
+              
+              <Route path="/dashboard/client" element={
+                  <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>
                     <ClientDashboard user={user} onLogin={handleLogin} />
-                } />
-                
-                <Route path="/dashboard/driver" element={
-                    user?.role === UserRole.DRIVER ? <DriverDashboard key={user.id} user={user} /> : <Navigate to="/" />
-                } />
+                  </Layout>
+              } />
+              
+              <Route path="/dashboard/driver" element={
+                  <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>
+                    {user?.role === UserRole.DRIVER ? <DriverDashboard key={user.id} user={user} /> : <Navigate to="/" />}
+                  </Layout>
+              } />
 
-                {/* Redirect /admin to subdomain if accessed from main site */}
-                <Route path="/admin" element={() => {
-                    window.location.href = 'https://admin.tripfers.com';
-                    return null;
-                }} />
+              {/* Redirect /admin to subdomain if accessed from main site */}
+              <Route path="/admin" element={() => {
+                  window.location.href = 'https://admin.tripfers.com';
+                  return null;
+              }} />
 
-                <Route path="/membership-success" element={<MembershipSuccess user={user} />} />
-             </>
-          )}
-
-        </Routes>
-      </Layout>
+              <Route path="/membership-success" element={
+                  <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>
+                    <MembershipSuccess user={user} />
+                  </Layout>
+              } />
+           </>
+        )}
+      </Routes>
     </Router>
   );
 }

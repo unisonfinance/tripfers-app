@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { mockBackend } from '../services/mockBackend';
+import { backend } from '../services/BackendService';
 import { Icons } from './Icons';
 import { useTranslation } from 'react-i18next';
 
@@ -17,13 +17,13 @@ export const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, userI
         setLoading(true);
         try {
             // Initiate the simulated Stripe Checkout flow
-            const redirectUrl = await mockBackend.initiateStripeCheckout(userId);
+            const redirectUrl = await backend.initiateStripeCheckout(userId);
             
             // Redirect the user to the success page (simulating Stripe callback)
             window.location.href = redirectUrl;
             
             // Note: In a real app with Stripe.js, we would use stripe.redirectToCheckout({ sessionId })
-            // Here, mockBackend provides a direct URL to our internal success page to handle the flow.
+            // Here, backend provides a direct URL to our internal success page to handle the flow.
         } catch (error) {
             console.error("Payment initiation failed:", error);
             setLoading(false);

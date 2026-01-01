@@ -1,44 +1,46 @@
 import React, { useState, useRef } from 'react';
-import { mockBackend } from '../../services/mockBackend';
+import { backend } from '../../services/BackendService';
 import { User, DocumentType, DriverDocument } from '../../types';
 import { Icons } from '../Icons';
+import { useTranslation } from 'react-i18next';
 
 interface DocumentsViewProps {
   currentUser: User;
   onBack: () => void;
 }
 
-const DOC_TYPES: { type: DocumentType; label: string; description?: string }[] = [
-  { 
-    type: 'LICENSE_SELFIE', 
-    label: "Selfie with your driver's license",
-    description: "Take a photo of yourself holding your driver's license"
-  },
-  { 
-    type: 'VRC', 
-    label: "Vehicle Registration Certificate",
-    description: "Official registration document for your vehicle"
-  },
-  { 
-    type: 'VRC_PHOTO', 
-    label: "Vehicle photo with VRC certificate",
-    description: "Photo of vehicle with license plate visible and VRC"
-  },
-  { 
-    type: 'INSURANCE', 
-    label: "Insurance",
-    description: "Valid commercial vehicle insurance policy"
-  },
-  { 
-    type: 'TRANSPORT_LICENSE', 
-    label: "Transportation license",
-    description: "According to law and regulations in your country"
-  }
-];
-
 export const DocumentsView: React.FC<DocumentsViewProps> = ({ currentUser, onBack }) => {
+  const { t } = useTranslation();
   const [uploading, setUploading] = useState<string | null>(null);
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+
+  const DOC_TYPES: { type: DocumentType; label: string; description?: string }[] = [
+    { 
+      type: 'LICENSE_SELFIE', 
+      label: t('doc_selfie_label'),
+      description: t('doc_selfie_desc')
+    },
+    { 
+      type: 'VRC', 
+      label: t('doc_vrc_label'),
+      description: t('doc_vrc_desc')
+    },
+    { 
+      type: 'VRC_PHOTO', 
+      label: t('doc_vrc_photo_label'),
+      description: t('doc_vrc_photo_desc')
+    },
+    { 
+      type: 'INSURANCE', 
+      label: t('doc_insurance_label'),
+      description: t('doc_insurance_desc')
+    },
+    { 
+      type: 'TRANSPORT_LICENSE', 
+      label: t('doc_transport_license_label'),
+      description: t('doc_transport_license_desc')
+    }
+  ];
 
   const getDocStatus = (type: DocumentType) => {
     return currentUser.documents?.find(d => d.type === type);
@@ -52,7 +54,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({ currentUser, onBac
       try {
         // Simulate network delay
         await new Promise(resolve => setTimeout(resolve, 1500));
-        await mockBackend.uploadDocument(currentUser.id, type, file);
+        await backend.uploadDocument(currentUser.id, type, file);
       } catch (error) {
         console.error("Upload failed", error);
       } finally {
@@ -78,7 +80,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({ currentUser, onBac
           >
             <Icons.ArrowLeft className="w-5 h-5 text-slate-600" />
           </button>
-          <h2 className="text-lg font-bold text-slate-800">Documents</h2>
+          <h2 className="text-lg font-bold text-slate-800">{t('documents')}</h2>
         </div>
       </div>
 
@@ -88,9 +90,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({ currentUser, onBac
         {/* Warning Banner */}
         <div className="bg-red-400 text-white p-4 rounded-xl mb-6 shadow-sm">
             <p className="text-sm font-medium text-center">
-                To upload new documents please ensure they are clear and legible.
-                <br />
-                Approvals are handled manually by our team.
+                {t('doc_upload_warning')}
             </p>
         </div>
 
@@ -144,12 +144,12 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({ currentUser, onBac
                         </h3>
                         {isRejected ? (
                             <p className="text-xs text-red-500 font-medium">
-                                Rejected: {currentDoc.rejectionReason || 'Please re-upload'}
+                                {t('status_rejected')}: {currentDoc.rejectionReason || t('re_upload_hint')}
                             </p>
                         ) : isPending ? (
-                            <p className="text-xs text-yellow-600 font-medium">Verifying...</p>
+                            <p className="text-xs text-yellow-600 font-medium">{t('status_verifying')}</p>
                         ) : isApproved ? (
-                            <p className="text-xs text-green-600 font-medium">Approved</p>
+                            <p className="text-xs text-green-600 font-medium">{t('status_approved')}</p>
                         ) : (
                             <p className="text-xs text-slate-400 truncate">{docInfo.description}</p>
                         )}

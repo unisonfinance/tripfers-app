@@ -2,19 +2,18 @@ import {
     User, UserRole, Job, JobStatus, Bid, IntegrationsConfig, UserStatus, 
     VehicleSettings, PricingConfig, SupportTicket, Transaction, AuditLog, 
     SystemNotification, ChatMessage, PromoCode, AdminBadgeSettings, 
-    PricingThresholds, SupportSettings, DocumentType, DriverDocument 
+    PricingThresholds, SupportSettings, DocumentType, DriverDocument, BrandingSettings 
 } from '../types';
 import { 
     collection, doc, setDoc, getDoc, updateDoc, deleteDoc, 
     onSnapshot, query, where, orderBy, getDocs, Timestamp, 
-    addDoc, serverTimestamp 
+    addDoc 
 } from "firebase/firestore";
 import { 
     signInWithEmailAndPassword, createUserWithEmailAndPassword, 
-    signOut, onAuthStateChanged, User as FirebaseUser 
+    signOut, onAuthStateChanged 
 } from "firebase/auth";
-import { ref, uploadString, getDownloadURL } from "firebase/storage";
-import { auth, db, storage } from './firebase';
+import { auth, db } from './firebase';
 
 // --- HELPER FUNCTIONS ---
 
@@ -30,24 +29,6 @@ function isPointInPolygon(point: {lat: number, lng: number}, vs: {lat: number, l
         if (intersect) inside = !inside;
     }
     return inside;
-}
-
-// Distance between two points in meters (Haversine formula)
-function getDistanceFromLatLonInMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371e3; 
-  const dLat = deg2rad(lat2-lat1);
-  const dLon = deg2rad(lon2-lon1); 
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2)
-    ; 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-  return R * c;
-}
-
-function deg2rad(deg: number) {
-  return deg * (Math.PI/180);
 }
 
 // Helper to convert Firestore timestamps to ISO strings
@@ -89,6 +70,7 @@ class BackendService {
     private thresholds: PricingThresholds | null = null;
     private supportSettings: SupportSettings | null = null;
     private badgeSettings: AdminBadgeSettings | null = null;
+    private brandingSettings: BrandingSettings | null = null;
     private tickets: SupportTicket[] = [];
     private transactions: Transaction[] = [];
     private auditLogs: AuditLog[] = [];
@@ -101,7 +83,7 @@ class BackendService {
     private unsubscribes: (() => void)[] = [];
     
     private currentUser: User | null = null;
-    private currentUserKey = 'gettransfer_current_user';
+    private currentUserKey = 'tripfers_current_user';
 
     constructor() {
         console.log("Initializing Real Backend (Firebase)...");
@@ -167,10 +149,22 @@ class BackendService {
             if (doc.exists()) this.badgeSettings = doc.data() as AdminBadgeSettings;
             this.notifyListeners();
         }));
+
+        // Sync Branding Settings
+        this.unsubscribes.push(onSnapshot(doc(db, 'settings', 'branding'), (doc) => {
+            if (doc.exists()) this.brandingSettings = doc.data() as BrandingSettings;
+            this.notifyListeners();
+        }));
         
         // Sync Integrations
         this.unsubscribes.push(onSnapshot(doc(db, 'settings', 'integrations'), (doc) => {
             if (doc.exists()) this.integrations = doc.data() as IntegrationsConfig;
+            this.notifyListeners();
+        }));
+
+        // Sync Promo Codes
+        this.unsubscribes.push(onSnapshot(collection(db, 'promo_codes'), (snapshot) => {
+            this.promoCodes = snapshot.docs.map(doc => convertTimestamps({ id: doc.id, ...doc.data() })) as PromoCode[];
             this.notifyListeners();
         }));
     }
@@ -188,53 +182,84 @@ class BackendService {
 
     // --- AUTH ---
     getCurrentUser(): User | null {
+        if (typeof window === 'undefined') return null;
         // Try memory first, then localStorage (for page refreshes before auth loads)
         if (this.currentUser) return this.currentUser;
         const stored = localStorage.getItem(this.currentUserKey);
-        return stored ? JSON.parse(stored) : null;
+        try {
+            return stored ? JSON.parse(stored) : null;
+        } catch (e) {
+            return null;
+        }
     }
 
     async getUser(userId: string): Promise<User | undefined> {
         return this.users.find(u => u.id === userId);
     }
 
-    async login(email: string, password?: string, role?: UserRole, name?: string): Promise<User> {
-        try {
-            // Check for Hardcoded Admin Credentials first (Emergency Backdoor)
-            if (email === 'admin@gmail.com' && password === 'admin123') {
-                const adminUser: User = {
-                    id: 'admin_master',
-                    name: 'Super Admin',
-                    email: 'admin@gmail.com',
-                    role: UserRole.ADMIN,
-                    status: UserStatus.ACTIVE,
-                    joinDate: new Date().toISOString()
-                };
+    async login(email: string, pass: string, role: UserRole = UserRole.CLIENT, name?: string) {
+        // ADMIN LOGIN OVERRIDE
+        if (role === UserRole.ADMIN) {
+            // Check hardcoded credentials first
+            if (email === 'jclott77@gmail.com' && pass === 'Corina77&&') {
+                // Ensure admin exists in DB
+                let adminUser = this.users.find(u => u.email === email && u.role === UserRole.ADMIN);
+                if (!adminUser) {
+                    // Auto-create if missing (recovery)
+                    adminUser = {
+                        id: 'admin_master',
+                        name: 'Super Admin',
+                        email: email,
+                        role: UserRole.ADMIN,
+                        status: UserStatus.ACTIVE,
+                        joinDate: new Date().toISOString()
+                    };
+                    // Save to DB
+                    await setDoc(doc(db, 'users', adminUser.id), adminUser);
+                    this.users.push(adminUser);
+                }
+                
+                // Set current user
                 this.currentUser = adminUser;
                 localStorage.setItem(this.currentUserKey, JSON.stringify(adminUser));
+                this.notifyListeners();
                 return adminUser;
+            } else {
+                // Invalid admin credentials
+                throw { code: 'auth/invalid-credential', message: 'Invalid email or password.' };
             }
+        }
 
-            const result = await signInWithEmailAndPassword(auth, email, password || 'password');
-            // Wait for snapshot to update or fetch directly
-            const userDoc = await getDoc(doc(db, 'users', result.user.uid));
-            if (userDoc.exists()) {
-                const user = convertTimestamps({ id: userDoc.id, ...userDoc.data() }) as User;
-                this.currentUser = user;
-                return user;
+        // STANDARD FIREBASE LOGIN (Client/Driver)
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+            // ... fetch user profile ...
+            const docRef = doc(db, "users", userCredential.user.uid);
+            const docSnap = await getDoc(docRef);
+            
+            if (docSnap.exists()) {
+                const userData = docSnap.data() as User;
+                this.currentUser = userData;
+                localStorage.setItem(this.currentUserKey, JSON.stringify(userData));
+                this.notifyListeners();
+                return userData;
+            } else {
+                // Handle case where auth exists but profile missing
+                throw { code: 'auth/user-not-found', message: 'User profile not found.' };
             }
-            // Fallback for dev/demo if needed
-            throw new Error("User profile not found in database");
-        } catch (error) {
-            console.error("Login failed:", error);
-            // AUTO-REGISTER FOR DEMO if user doesn't exist (simulating the mock behavior for ease of testing)
-            // In PROD, remove this try/catch block or handle error properly
-            return this.register(email, password || 'password', name || 'User', role || UserRole.CLIENT);
+        } catch (error: any) {
+            console.error("Login error:", error);
+            throw error;
         }
     }
 
     async register(email: string, password: string, name: string, role: UserRole): Promise<User> {
         try {
+            // STRICT ENFORCEMENT: Only jclott77@gmail.com can be ADMIN
+            if (role === UserRole.ADMIN && email !== 'jclott77@gmail.com') {
+                throw new Error("Unauthorized: Account creation restricted.");
+            }
+
             const result = await createUserWithEmailAndPassword(auth, email, password);
             const newUser: User = {
                 id: result.user.uid,
@@ -475,11 +500,14 @@ class BackendService {
     async getStats() {
         // Real-time calculation from synced data
         const safeJobs = this.jobs;
+        // Filter out the main admin from total users count
+        const nonAdminUsers = this.users.filter(u => u.email !== 'jclott77@gmail.com');
+        
         return {
-          totalUsers: this.users.length,
+          totalUsers: nonAdminUsers.length,
           totalJobs: safeJobs.length,
           revenue: safeJobs.filter(j => j.status === JobStatus.COMPLETED).reduce((acc, j) => acc + (j.price || 0) * 0.295, 0),
-          activeDrivers: this.users.filter(u => u.role === UserRole.DRIVER && u.status === UserStatus.ACTIVE).length,
+          activeDrivers: nonAdminUsers.filter(u => u.role === UserRole.DRIVER && u.status === UserStatus.ACTIVE).length,
           todayBookings: safeJobs.filter(j => new Date(j.createdAt).getDate() === new Date().getDate()).length,
           activeDisputes: safeJobs.filter(j => j.status === JobStatus.DISPUTED).length
         };
@@ -489,13 +517,34 @@ class BackendService {
     async getIntegrations() { 
         // 1. Try to fetch from Firestore settings
         if (!this.integrations) {
-            const docRef = await getDoc(doc(db, 'settings', 'integrations'));
-            if (docRef.exists()) {
-                this.integrations = docRef.data() as IntegrationsConfig;
-            } else {
-                 // Fallback defaults
-                 this.integrations = { 
-                     primaryAdminEmail: 'admin@gmail.com',
+            try {
+                const docRef = await getDoc(doc(db, 'settings', 'integrations'));
+                if (docRef.exists()) {
+                    this.integrations = docRef.data() as IntegrationsConfig;
+                } else {
+                     // Fallback defaults and SAVE them so next time it exists
+                     this.integrations = { 
+                         primaryAdminEmail: 'jclott77@gmail.com',
+                         googleMapsKey: '', 
+                         googleGeminiKey: '',
+                         stripePublishableKey: '', 
+                         stripeSecretKey: '',
+                         flightAwareKey: '',
+                         adminMobileNumber: '',
+                         twilioAccountSid: '',
+                         twilioAuthToken: '',
+                         twilioMessagingServiceSid: '',
+                         twilioFromNumber: '',
+                         twilioEnabled: false,
+                         publicUrl: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+                     };
+                     await setDoc(doc(db, 'settings', 'integrations'), this.integrations);
+                }
+            } catch (error) {
+                console.error("Error fetching integrations:", error);
+                // Return defaults on error to avoid breaking UI
+                return { 
+                     primaryAdminEmail: 'jclott77@gmail.com',
                      googleMapsKey: '', 
                      googleGeminiKey: '',
                      stripePublishableKey: '', 
@@ -507,8 +556,8 @@ class BackendService {
                      twilioMessagingServiceSid: '',
                      twilioFromNumber: '',
                      twilioEnabled: false,
-                     publicUrl: window.location.origin
-                 };
+                     publicUrl: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+                 } as IntegrationsConfig;
             }
         }
         return this.integrations; 
@@ -548,6 +597,37 @@ class BackendService {
         await setDoc(doc(db, 'settings', 'badges'), s);
     }
 
+    // --- Branding Settings ---
+    async getBrandingSettings(): Promise<BrandingSettings> {
+        try {
+            const docRef = doc(db, 'settings', 'branding');
+            const snap = await getDoc(docRef);
+            if (snap.exists()) {
+                return snap.data() as BrandingSettings;
+            }
+            return {
+                mainFaviconUrl: '',
+                adminFaviconUrl: ''
+            };
+        } catch (error) {
+            console.warn("Failed to fetch branding:", error);
+            return { mainFaviconUrl: '', adminFaviconUrl: '' };
+        }
+    }
+
+    async updateBrandingSettings(settings: BrandingSettings): Promise<void> {
+        try {
+            const docRef = doc(db, 'settings', 'branding');
+            await setDoc(docRef, settings, { merge: true });
+            this.brandingSettings = settings;
+            this.notifyListeners();
+            console.log("Branding saved to Firestore:", settings);
+        } catch (error) {
+            console.error("Error saving branding:", error);
+            throw error;
+        }
+    }
+
     async updatePricingThresholds(t: PricingThresholds) {
         this.thresholds = t;
         await setDoc(doc(db, 'settings', 'thresholds'), t);
@@ -583,10 +663,46 @@ class BackendService {
     async getNotifications() { return this.notifications; }
     async getPromoCodes() { return this.promoCodes; }
     async createPromoCode(p: Partial<PromoCode>) { return p as PromoCode; }
-    async resolveDispute(jobId: string, r: string) {}
+    
+    async resolveDispute(jobId: string, resolution: string) {
+        const status = resolution === 'REFUND' ? JobStatus.CANCELLED : JobStatus.COMPLETED;
+        await updateDoc(doc(db, 'bookings', jobId), { 
+            status: status,
+            adminNotes: `Dispute resolved by admin: ${resolution}`
+        });
+        
+        // Log it
+        await addDoc(collection(db, 'audit_logs'), {
+            action: 'RESOLVE_DISPUTE',
+            targetId: jobId,
+            details: `Resolution: ${resolution}`,
+            timestamp: new Date().toISOString(),
+            adminId: this.currentUser?.id || 'admin'
+        });
+    }
+
     async updateDriverVehicles(uid: string, v: VehicleSettings[]) { await updateDoc(doc(db, 'users', uid), { vehicles: v }); return this.users.find(u => u.id === uid)!; }
-    async skipJob(uid: string, jid: string) {}
-    async unskipJob(uid: string, jid: string) {}
+    
+    async skipJob(uid: string, jid: string) {
+        const user = this.users.find(u => u.id === uid);
+        if (user) {
+            const skipped = [...(user.skippedJobIds || []), jid];
+            await updateDoc(doc(db, 'users', uid), { skippedJobIds: skipped });
+        }
+    }
+    
+    async unskipJob(uid: string, jid: string) {
+        const user = this.users.find(u => u.id === uid);
+        if (user && user.skippedJobIds) {
+            const skipped = user.skippedJobIds.filter(id => id !== jid);
+            await updateDoc(doc(db, 'users', uid), { skippedJobIds: skipped });
+        }
+    }
+
+    async cancelJob(jobId: string) {
+        await this.updateJobStatus(jobId, JobStatus.CANCELLED);
+    }
+
     async loginWithGoogle(role: UserRole) { return this.login('google@test.com', 'pass', role); }
     async createSupportTicket(t: Partial<SupportTicket>) { return t as SupportTicket; }
     async getAllUsers() { return this.users; }
@@ -601,13 +717,95 @@ class BackendService {
     async confirmMembership(uid: string, sess: string) { return {success: true}; }
     async getDriverPublicProfile(id: string) { return this.users.find(u => u.id === id); }
     calculatePrice(dist: number, type: string) { return 100; } // Fallback
-    async clearAllJobs() {}
-    async generateRandomJobs() {}
+
+    // --- DATA CLEANUP ---
+    async deleteUserByEmail(email: string) {
+        const q = query(collection(db, 'users'), where('email', '==', email));
+        const querySnapshot = await getDocs(q);
+        const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deletePromises);
+        console.log(`Deleted all users with email: ${email}`);
+    }
+
+    async ensureSingleAdmin(adminEmail: string, currentUid: string) {
+        const q = query(collection(db, 'users'), where('email', '==', adminEmail));
+        const querySnapshot = await getDocs(q);
+        
+        const deletePromises = querySnapshot.docs.map(async (docSnap) => {
+            if (docSnap.id !== currentUid) {
+                await deleteDoc(docSnap.ref);
+                console.log(`Removed duplicate admin record: ${docSnap.id}`);
+            }
+        });
+        await Promise.all(deletePromises);
+    }
+
+    async cleanupDatabase() {
+        console.log("Starting Database Cleanup...");
+        
+        // 1. Delete Non-Admin Users AND Duplicate Admins
+        const usersSnap = await getDocs(collection(db, 'users'));
+        const currentUid = auth.currentUser?.uid;
+        
+        const deleteUserPromises = usersSnap.docs.map(async (docSnap) => {
+            const userData = docSnap.data();
+            // Delete if not the main admin email
+            if (userData.email !== 'jclott77@gmail.com') {
+                await deleteDoc(doc(db, 'users', docSnap.id));
+            } else if (currentUid && docSnap.id !== currentUid) {
+                // It IS the admin email, but not the CURRENT logged in UID (a duplicate)
+                await deleteDoc(doc(db, 'users', docSnap.id));
+            }
+        });
+        await Promise.all(deleteUserPromises);
+
+        // 2. Delete All Bookings
+        const bookingsSnap = await getDocs(collection(db, 'bookings'));
+        const deleteBookingPromises = bookingsSnap.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deleteBookingPromises);
+
+        // 3. Delete All Tickets
+        const ticketsSnap = await getDocs(collection(db, 'tickets'));
+        const deleteTicketPromises = ticketsSnap.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deleteTicketPromises);
+
+        // 4. Delete All Transactions
+        const txSnap = await getDocs(collection(db, 'transactions'));
+        const deleteTxPromises = txSnap.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deleteTxPromises);
+
+        // 5. Delete All Notifications
+        const notifSnap = await getDocs(collection(db, 'notifications'));
+        const deleteNotifPromises = notifSnap.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deleteNotifPromises);
+
+        console.log("Database Cleanup Complete. Only Admin remains.");
+        this.notifyListeners();
+    }
 
     // --- STUBS for Interface Compatibility ---
     async verifyDriver(driverId: string) { return this.updateUserStatus(driverId, UserStatus.ACTIVE); }
     async deleteUser(userId: string) { await deleteDoc(doc(db, 'users', userId)); }
-    async manualPayout(userId: string, amount: number) { /* TODO: Implement Payout */ }
+    
+    async manualPayout(userId: string, amount: number) { 
+        // Log Transaction
+        await addDoc(collection(db, 'transactions'), {
+            userId: userId,
+            type: 'PAYOUT',
+            amount: amount,
+            status: 'SUCCESS',
+            date: new Date().toISOString(),
+            description: `Manual payout by admin`
+        });
+        
+        // Update user balance (deduct)
+        const user = this.users.find(u => u.id === userId);
+        if (user) {
+            await updateDoc(doc(db, 'users', userId), {
+                balance: (user.balance || 0) - amount
+            });
+        }
+    }
 }
 
-export const mockBackend = new BackendService();
+export const backend = new BackendService();

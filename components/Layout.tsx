@@ -28,12 +28,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
   const accountRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
 
-  // Enforce English for Admins
-  useEffect(() => {
-    if (user?.role === UserRole.ADMIN && i18n.language !== 'en') {
-      i18n.changeLanguage('en');
-    }
-  }, [user?.role, i18n.language]);
+  // Enforce English for Admins (REMOVED: Allowing Admin to switch languages as requested)
+  // useEffect(() => {
+  //   if (user?.role === UserRole.ADMIN && i18n.language !== 'en') {
+  //     i18n.changeLanguage('en');
+  //   }
+  // }, [user?.role, i18n.language]);
 
   // Close sidebar on route change
   useEffect(() => {
@@ -71,14 +71,24 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
       {/* TOP NAVIGATION BAR */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-800 shadow-sm border-b border-slate-200 dark:border-slate-700 h-16 flex items-center justify-between px-4 md:px-6">
           
-          {/* LEFT: Logo (Hamburger removed) */}
+          {/* LEFT: Logo & Hamburger */}
           <div className="flex items-center gap-4">
+             {/* Show Hamburger ONLY for ADMIN */}
+             {user?.role === UserRole.ADMIN && (
+                 <button 
+                    onClick={() => setSidebarOpen(!isSidebarOpen)}
+                    className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-200 md:hidden"
+                 >
+                    <Icons.Menu className="w-6 h-6" />
+                 </button>
+             )}
+
              <div className="flex items-center gap-2">
-                 <h1 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">GetTransfer.com</h1>
-                 {user?.isMember && (
+                {/* Logo Removed as requested */}
+                {user?.isMember && (
                     <span className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
                         <Icons.Star className="w-3 h-3 fill-emerald-700 dark:fill-emerald-400 stroke-none" />
-                        VIP
+                        {t('vip')}
                     </span>
                  )}
              </div>
@@ -91,7 +101,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
              <button 
                 onClick={toggleTheme}
                 className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-200 transition-colors"
-                title={isDark ? "Light Mode" : "Dark Mode"}
+                title={isDark ? t('light_mode') : t('dark_mode')}
              >
                 {isDark ? <Icons.Sun className="w-6 h-6" /> : <Icons.Moon className="w-6 h-6" />}
              </button>
@@ -101,13 +111,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
                 <button 
                     onClick={() => setShowLangDropdown(!showLangDropdown)}
                     className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-200 transition-colors"
-                    disabled={user?.role === UserRole.ADMIN}
-                    title={user?.role === UserRole.ADMIN ? 'Language locked for Admin' : undefined}
                 >
-                    <Icons.GlobeAlt className="w-6 h-6" />
+                    {LANGUAGES.find(l => l.code === i18n.language) ? (
+                        <img 
+                            src={`https://flagcdn.com/w40/${LANGUAGES.find(l => l.code === i18n.language)?.flag}.png`} 
+                            alt="Language" 
+                            className="w-6 h-6 object-cover rounded-full shadow-sm border border-slate-200 dark:border-slate-600" 
+                        />
+                    ) : (
+                        <Icons.GlobeAlt className="w-6 h-6" />
+                    )}
                 </button>
 
-                {showLangDropdown && user?.role !== UserRole.ADMIN && (
+                {showLangDropdown && (
                     <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-2 animate-slide-up origin-top-right max-h-80 overflow-y-auto">
                         {LANGUAGES.map((lang) => (
                             <button
@@ -115,7 +131,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
                                 onClick={() => changeLanguage(lang.code)}
                                 className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${i18n.language === lang.code ? 'bg-slate-50 dark:bg-slate-700 font-bold text-red-600' : 'text-slate-700 dark:text-slate-300'}`}
                             >
-                                <span className="text-lg">{lang.flag}</span>
+                                <img src={`https://flagcdn.com/w40/${lang.flag}.png`} alt={lang.name} className="w-6 h-auto shadow-sm rounded-[2px]" />
                                 <span>{lang.name}</span>
                             </button>
                         ))}
@@ -188,40 +204,36 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
       )}
 
 
-      {/* Sidebar (Drivers/Admin) */}
-      {!isClient && user && (
+      {/* Sidebar (Admin Only) */}
+      {user?.role === UserRole.ADMIN && (
         <aside className={`
             fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-slate-800 shadow-lg transform transition-transform duration-300 ease-in-out pt-20
-            md:translate-x-0 md:static md:shadow-none border-r border-slate-200 dark:border-slate-700
+            md:translate-x-0 md:fixed md:top-16 md:bottom-0 md:shadow-none border-r border-slate-200 dark:border-slate-700 overflow-y-auto
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
             <div className="p-4 flex flex-col h-full">
             <nav className="flex-1 space-y-2">
-                {user?.role === UserRole.DRIVER && (
-                <a href="#/dashboard/driver" className="flex items-center space-x-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">
-                    <Icons.Car className="w-5 h-5" />
-                    <span>Driver Dashboard</span>
-                </a>
-                )}
-                 {user?.role === UserRole.ADMIN && (
                 <a href="#/admin" className="flex items-center space-x-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">
                     <Icons.Shield className="w-5 h-5" />
-                    <span>Admin Panel</span>
+                    <span>{t('admin_panel')}</span>
                 </a>
-                )}
             </nav>
             </div>
         </aside>
       )}
 
-      {/* Main Content - Reduced mobile padding from px-2 to px-1 for wider form */}
-      <main className={`flex-1 px-1 py-4 md:p-8 overflow-y-auto mt-16 ${isClient && !user?.isMember ? 'pt-24 md:pt-8' : ''}`}>
+      {/* Main Content - Add margin for fixed sidebar ONLY for Admin */}
+      <main className={`flex-1 px-1 overflow-y-auto mt-16 
+          ${user?.role === UserRole.ADMIN ? 'py-2 md:px-8 md:pb-8 md:pt-2 md:ml-64' : 'py-4 md:p-8'} 
+          ${isClient && !user?.isMember ? 'pt-24 md:pt-8' : ''}
+      `}>
         <div className="max-w-6xl mx-auto">
           {children}
         </div>
       </main>
 
-      {!isClient && isSidebarOpen && (
+      {/* Overlay for Mobile Sidebar (Admin Only) */}
+      {user?.role === UserRole.ADMIN && isSidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 

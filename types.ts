@@ -362,3 +362,8 @@ export interface SupportSettings {
   supportPhone: string;
   whatsappNumber: string;
 }
+
+export interface BrandingSettings {
+  mainFaviconUrl: string;
+  adminFaviconUrl: string;
+}

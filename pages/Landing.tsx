@@ -4,7 +4,7 @@ import { User, UserRole } from '../types';
 import { Icons } from '../components/Icons';
 import { AutocompleteInput } from '../components/AutocompleteInput';
 import { AuthModal } from '../components/AuthModal';
-import { mockBackend } from '../services/mockBackend';
+import { backend } from '../services/BackendService';
 import { useTranslation } from 'react-i18next';
 
 interface LandingProps {
@@ -43,7 +43,7 @@ export const Landing: React.FC<LandingProps> = ({ onLogin }) => {
   const [pricingConfig, setPricingConfig] = useState<any>(null);
 
   useEffect(() => {
-      mockBackend.getPricingConfig().then(setPricingConfig);
+      backend.getPricingConfig().then(setPricingConfig);
   }, []);
 
   // --- DISTANCE CALCULATION EFFECT ---
@@ -116,7 +116,7 @@ export const Landing: React.FC<LandingProps> = ({ onLogin }) => {
 
   const getPrice = (dist: number, type: string) => {
       if (!pricingConfig) return 0;
-      return mockBackend.calculatePrice(dist, type);
+      return backend.calculatePrice(dist, type);
   };
 
   return (
@@ -124,7 +124,7 @@ export const Landing: React.FC<LandingProps> = ({ onLogin }) => {
       {/* Header */}
       <header className="flex justify-between items-center py-4 px-4 md:px-8">
         <div className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-          GetTransfer.com
+          Tripfers
         </div>
         <div className="flex items-center gap-4">
              <nav className="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-600 dark:text-slate-300">

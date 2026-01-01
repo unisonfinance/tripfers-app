@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Icons } from '../../components/Icons';
 import { useTranslation } from 'react-i18next';
-import { mockBackend } from '../../services/mockBackend';
+import { backend } from '../../services/BackendService';
 import { SupportSettings } from '../../types';
 
 export const SupportView: React.FC = () => {
@@ -10,14 +10,14 @@ export const SupportView: React.FC = () => {
 
   useEffect(() => {
     const loadSettings = async () => {
-        if (mockBackend.getSupportSettings) {
-            const data = await mockBackend.getSupportSettings();
+        if (backend.getSupportSettings) {
+            const data = await backend.getSupportSettings();
             setSettings(data);
         }
     };
     loadSettings();
     // Subscribe for real-time updates
-    const unsubscribe = mockBackend.subscribe(loadSettings);
+    const unsubscribe = backend.subscribe(loadSettings);
     return () => unsubscribe();
   }, []);
 
@@ -42,13 +42,13 @@ export const SupportView: React.FC = () => {
             </div>
           </a>
 
-          <a href={`mailto:${settings?.supportEmail || 'support@gettransfer.com'}`} className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+          <a href={`mailto:${settings?.supportEmail || 'support@tripfers.com'}`} className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
             <div className="bg-blue-500/10 p-3 rounded-full text-blue-600">
                <Icons.Mail className="w-6 h-6" />
             </div>
             <div>
               <p className="font-bold text-slate-900 dark:text-white">{t('email_support')}</p>
-              <p className="text-xs text-slate-500">{settings?.supportEmail || 'support@gettransfer.com'}</p>
+              <p className="text-xs text-slate-500">{settings?.supportEmail || 'support@tripfers.com'}</p>
             </div>
           </a>
 
@@ -66,7 +66,7 @@ export const SupportView: React.FC = () => {
       
       <div className="text-center">
         <p className="text-slate-400 text-sm">{t('operating_hours')}</p>
-        <p className="text-slate-500 text-xs mt-1">GetTransfer Ltd. London, UK</p>
+        <p className="text-slate-500 text-xs mt-1">Tripfers Ltd. London, UK</p>
       </div>
     </div>
   );

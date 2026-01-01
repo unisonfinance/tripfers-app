@@ -1,91 +1,58 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
+rules_version = '2'; 
+service cloud.firestore { 
+  match /databases/{database}/documents { 
 
-    // Helper: Check if user is admin
-    function isAdmin() {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
-    }
+    // Helper: Check if user is admin 
+    function isAdmin() { 
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN'; 
+    }  
 
-    // Helper: Check if user is authenticated
-    function isAuth() {
-      return request.auth != null;
-    }
+    // Helper: Check if user is authenticated 
+    function isAuth() { 
+      return request.auth != null; 
+    } 
 
-    // Global admin override (Admins can do anything)
-    match /{document=**} {
-      allow read, write: if isAdmin();
-    }
+    // Global admin override 
+    match /{document=**} { 
+      allow read, write: if isAdmin(); 
+    } 
 
-    // ---------------------------------------------------------
-    // 👤 USERS COLLECTION
-    // ---------------------------------------------------------
-    match /users/{userId} {
-      // Public profiles needed for client/driver visibility
-      allow read: if isAuth();
-      // Users can only edit their own profile
-      allow write: if request.auth.uid == userId;
-      
-      // RECURSIVE: Allow users to read/write their own sub-collections
-      // (e.g., documents, vehicles, saved locations)
-      match /{document=**} {
-        allow read, write: if request.auth.uid == userId;
-      }
-    }
+    // --------------------------------------------------------- 
+    // � OPEN PERMISSIONS FOR DEV/TESTING (As Requested)
+    // --------------------------------------------------------- 
+    // Since we are bypassing Auth for quick role switching, 
+    // we must allow writes from unauthenticated clients for now.
+    
+    match /users/{userId} { 
+      allow read, write: if true; 
+    } 
 
-    // ---------------------------------------------------------
-    // 🚖 BOOKINGS (JOBS) COLLECTION
-    // ---------------------------------------------------------
-    match /bookings/{bookingId} {
-      // Allow authenticated users to create bookings
-      allow create: if isAuth();
-      
-      // Allow reading and updating 
-      // (Required for Drivers to see feed, bid, and update status)
-      allow read, update: if isAuth();
-    }
+    match /bookings/{bookingId} { 
+      allow read, write: if true; 
+    } 
 
-    // ---------------------------------------------------------
-    // 🎫 TICKETS (SUPPORT)
-    // ---------------------------------------------------------
-    match /tickets/{ticketId} {
-      allow create: if isAuth();
-      // Users can only see/update their own tickets
-      allow read, update: if resource.data.userId == request.auth.uid;
-    }
+    match /tickets/{ticketId} { 
+      allow read, write: if true; 
+    } 
 
-    // ---------------------------------------------------------
-    // 💰 TRANSACTIONS (FINANCE)
-    // ---------------------------------------------------------
-    match /transactions/{txId} {
-      // Users can see their own transaction history
-      allow read: if resource.data.userId == request.auth.uid;
-      // Only Admin/System can create transactions (handled via Admin SDK or Cloud Functions usually, 
-      // but allowing Admin write via global override above)
-      allow create: if false;
-    }
+    match /transactions/{txId} { 
+      allow read, write: if true; 
+    } 
 
-    // ---------------------------------------------------------
-    // 🔔 NOTIFICATIONS
-    // ---------------------------------------------------------
-    match /notifications/{notifId} {
-      allow read: if isAuth();
-      allow write: if false; // Only Admin sends
-    }
+    match /notifications/{notifId} { 
+      allow read, write: if true; 
+    } 
 
-    // ---------------------------------------------------------
-    // ⚙️ SETTINGS (Pricing, Config)
-    // ---------------------------------------------------------
-    match /settings/{document=**} {
-      allow read: if true;   // Public read
-      allow write: if false; // Admin only (via global override)
-    }
+    match /settings/{document=**} { 
+      allow read, write: if true; 
+    } 
 
-    // ---------------------------------------------------------
-    // 📊 LOGS
-    // ---------------------------------------------------------
-    match /audit_logs/{logId} {
-      allow read, write: if false; // Admin only
-    }
-  }
+    match /promo_codes/{codeId} { 
+      allow read, write: if true; 
+    } 
+
+    match /audit_logs/{logId} { 
+      allow read, write: if true; 
+    } 
+  } 
 }

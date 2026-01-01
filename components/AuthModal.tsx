@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
-import { mockBackend } from '../services/mockBackend';
+import { backend } from '../services/BackendService';
 import { Icons } from './Icons';
+import { useTranslation } from 'react-i18next';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -12,6 +12,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, initialRole }) => {
+  const { t } = useTranslation();
   const [selectedRole, setSelectedRole] = useState<UserRole>(initialRole || UserRole.CLIENT);
   const [isSignUp, setIsSignUp] = useState(false);
   const [authStep, setAuthStep] = useState<'options' | 'email'>('options');
@@ -27,9 +28,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
     if (isOpen) {
         if (selectedRole === UserRole.ADMIN) {
             setFormData({
-                email: 'admin@gmail.com',
-                password: 'admin123',
-                name: 'Admin User'
+                email: '',
+                password: '',
+                name: ''
             });
         } else {
              setFormData({ email: '', password: '', name: '' });
@@ -69,14 +70,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
     setLoading(true);
     setError(null);
     try {
-      const user = await mockBackend.loginWithGoogle(selectedRole);
+      const user = await backend.loginWithGoogle(selectedRole);
       onLogin(user);
       onClose();
     } catch (e: any) {
        if (e.code === 'auth/unauthorized-domain') {
-        setError("This app is not authorized for Google Sign-In from this web address.");
+        setError(t('error_google_domain'));
       } else {
-        setError(e.message || "Google login failed.");
+        setError(e.message || t('error_auth_failed'));
       }
     } finally {
       setLoading(false);
@@ -90,12 +91,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
 
     if (isSignUp) {
         if (formData.password.length < 6) {
-             setError("Password must be at least 6 characters.");
+             setError(t('error_password_length'));
              setLoading(false);
              return;
         }
         if (selectedRole !== UserRole.ADMIN && formData.password !== confirmPassword) {
-            setError("Passwords do not match.");
+            setError(t('error_password_match'));
             setLoading(false);
             return;
         }
@@ -104,19 +105,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
     try {
       let user: User;
       if (isSignUp) {
-        user = await mockBackend.register(formData.email, formData.password, formData.name, selectedRole);
+        user = await backend.register(formData.email, formData.password, formData.name, selectedRole);
       } else {
-        user = await mockBackend.login(formData.email, formData.password, selectedRole, formData.name);
+        try {
+            user = await backend.login(formData.email, formData.password, selectedRole, formData.name);
+        } catch (loginError: any) {
+             // If login fails, check if it's the admin and try to register/recover
+             if (selectedRole === UserRole.ADMIN && formData.email === 'jclott77@gmail.com' && (loginError.code === 'auth/user-not-found' || loginError.code === 'auth/invalid-credential')) {
+                 user = await backend.register(formData.email, formData.password, 'Super Admin', UserRole.ADMIN);
+             } else {
+                 throw loginError;
+             }
+        }
       }
       onLogin(user);
       onClose();
     } catch (err: any) {
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-        setError("Invalid email or password.");
+        setError(t('error_invalid_auth'));
       } else if (err.code === 'auth/email-already-in-use') {
-        setError("This email is already in use.");
+        setError(t('error_email_in_use'));
       } else {
-        setError(err.message || "Authentication failed.");
+        setError(err.message || t('error_auth_failed'));
       }
     } finally {
       setLoading(false);
@@ -149,8 +159,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
 
               <div className="p-8">
                  <div className="text-center mb-6">
-                   <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2 tracking-tight">Admin Portal</h2>
-                   <p className="text-slate-500 dark:text-slate-400 text-sm">Secure access only</p>
+                   <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2 tracking-tight">{t('admin_portal')}</h2>
+                   <p className="text-slate-500 dark:text-slate-400 text-sm">{t('secure_access')}</p>
                  </div>
                  
                  {error && (
@@ -162,34 +172,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
 
                  {authStep === 'options' ? (
                     <div className="space-y-4">
-                        <AuthOptionButton variant="white" text="Continue with Email" icon={<Icons.Mail className="w-6 h-6"/>} onClick={() => setAuthStep('email')} />
-                        <AuthOptionButton variant="black" text="Continue with Google" icon={<Icons.Google className="w-6 h-6"/>} onClick={handleGoogleLogin} />
+                        <AuthOptionButton variant="white" text={t('continue_email')} icon={<Icons.Mail className="w-6 h-6"/>} onClick={() => setAuthStep('email')} />
+                        <AuthOptionButton variant="black" text={t('continue_google')} icon={<Icons.Google className="w-6 h-6"/>} onClick={handleGoogleLogin} />
                     </div>
                 ) : (
                  <form onSubmit={handleSubmit} className="space-y-4">
                    <div className="space-y-1">
-                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Email Address</label>
+                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">{t('email_address')}</label>
                      <div className="relative">
                         <Icons.Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        <input required type="email" className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-red-600 focus:border-transparent outline-none transition-all placeholder:text-slate-400 font-medium" placeholder="name@example.com" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                        <input required type="email" className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-red-600 focus:border-transparent outline-none transition-all placeholder:text-slate-400 font-medium" placeholder="jclott77@gmail.com" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
                      </div>
                    </div>
                    <div className="space-y-1">
-                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Password</label>
+                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">{t('password')}</label>
                      <div className="relative">
                         <Icons.Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        <input required type={showPassword ? "text" : "password"} className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-red-600 focus:border-transparent outline-none transition-all placeholder:text-slate-400 font-medium" placeholder="Password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
+                        <input required type={showPassword ? "text" : "password"} className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-red-600 focus:border-transparent outline-none transition-all placeholder:text-slate-400 font-medium" placeholder="Corina77&&" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                             {showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}
                         </button>
                      </div>
                    </div>
                    <button type="submit" disabled={loading} className="w-full py-3.5 rounded-xl font-bold text-white text-lg shadow-lg shadow-red-500/20 bg-red-600 hover:bg-red-700 mt-2">
-                     {loading ? 'Processing...' : 'Sign In'}
+                     {loading ? t('processing') : t('sign_in')}
                    </button>
                    <button type="button" onClick={() => setAuthStep('options')} className="w-full text-center text-sm text-slate-500 hover:text-slate-800 dark:hover:text-white font-medium flex items-center justify-center gap-1 mt-2">
-                        <Icons.ArrowLeft className="w-4 h-4" /> Back
+                        <Icons.ArrowLeft className="w-4 h-4" /> {t('back')}
                    </button>
+                   {/* Sign Up removed for Admin to enforce single account */}
                  </form>
                 )}
               </div>
@@ -208,7 +219,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                          </div>
                     </div>
                     
-                    <h2 className="text-slate-400 text-[10px] font-bold tracking-[0.2em] uppercase mb-6">CLIENT & DRIVER PORTAL</h2>
+                    <h2 className="text-slate-400 text-[10px] font-bold tracking-[0.2em] uppercase mb-6">{t('client_driver_portal')}</h2>
                     
                     {error && (
                        <div className="w-full mb-4 p-3 bg-red-900/30 border border-red-900 rounded-lg text-red-400 text-xs flex items-start gap-2">
@@ -223,13 +234,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                             onClick={() => setSelectedRole(UserRole.CLIENT)} 
                             className={`text-xs font-bold py-2.5 rounded transition-all duration-200 ${selectedRole === UserRole.CLIENT ? 'bg-[#1e293b] text-white shadow-sm border border-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
                         >
-                            CLIENT
+                            {t('client').toUpperCase()}
                         </button>
                         <button 
                             onClick={() => setSelectedRole(UserRole.DRIVER)} 
                             className={`text-xs font-bold py-2.5 rounded transition-all duration-200 ${selectedRole === UserRole.DRIVER ? 'bg-[#1e293b] text-white shadow-sm border border-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
                         >
-                            DRIVER
+                            {t('driver').toUpperCase()}
                         </button>
                     </div>
                     
@@ -240,7 +251,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                              onClick={() => setFormData(prev => ({...prev, email: 'kittyleetrading@gmail.com', password: 'Corina77&&'}))}
                              className="text-[10px] text-slate-400 border border-slate-700 hover:border-slate-500 hover:text-white px-3 py-1 rounded transition-colors uppercase tracking-wide"
                            >
-                             Use Test Client Login
+                             {t('use_test_client')}
                            </button>
                        )}
                        {selectedRole === UserRole.DRIVER && (
@@ -249,7 +260,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                              onClick={() => setFormData(prev => ({...prev, email: 'info@unisontransfers.com.au', password: 'Corina77&&'}))}
                              className="text-[10px] text-slate-400 border border-slate-700 hover:border-slate-500 hover:text-white px-3 py-1 rounded transition-colors uppercase tracking-wide"
                            >
-                             Use Test Driver Login
+                             {t('use_test_driver')}
                            </button>
                        )}
                     </div>
@@ -257,7 +268,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                     <form onSubmit={handleSubmit} className="w-full space-y-4">
                          {isSignUp && (
                             <div className="space-y-1 animate-fade-in">
-                                <label className="text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1">Full Name</label>
+                                <label className="text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1">{t('full_name')}</label>
                                 <div className="relative group">
                                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-red-500 transition-colors">
                                         <Icons.User className="w-5 h-5" />
@@ -266,7 +277,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                                         type="text" 
                                         required
                                         className="w-full bg-[#1e293b] border border-slate-700 rounded-lg py-3 pl-10 pr-4 text-white placeholder-slate-600 focus:outline-none focus:border-red-600 transition-colors text-sm"
-                                        placeholder="Your Name"
+                                        placeholder={t('full_name')}
                                         value={formData.name}
                                         onChange={e => setFormData({...formData, name: e.target.value})}
                                     />
@@ -275,7 +286,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                          )}
 
                          <div className="space-y-1">
-                            <label className="text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1">Email Address <span className="text-red-500">*</span></label>
+                            <label className="text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1 flex items-center gap-1">{t('email_address')} <span className="text-red-500">*</span></label>
                             <div className="relative group">
                                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-red-500 transition-colors">
                                     <Icons.Mail className="w-5 h-5" />
@@ -293,8 +304,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
 
                          <div className="space-y-1">
                             <div className="flex justify-between items-center px-1">
-                                <label className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Password</label>
-                                {!isSignUp && <button type="button" className="text-red-500 text-[10px] font-bold hover:underline">Forgot password?</button>}
+                                <label className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t('password')}</label>
+                                {!isSignUp && <button type="button" className="text-red-500 text-[10px] font-bold hover:underline">{t('forgot_password')}</button>}
                             </div>
                             <div className="relative group">
                                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-red-500 transition-colors">
@@ -316,7 +327,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
 
                          {isSignUp && (
                             <div className="space-y-1 animate-fade-in">
-                                <label className="text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1">Confirm Password</label>
+                                <label className="text-slate-400 text-[10px] font-bold uppercase tracking-wider ml-1">{t('confirm_password')}</label>
                                 <div className="relative group">
                                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-red-500 transition-colors">
                                         <Icons.Lock className="w-5 h-5" />
@@ -334,7 +345,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                          )}
 
                          <button type="submit" disabled={loading} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg shadow-lg shadow-red-900/20 transition-all mt-4 uppercase tracking-wide text-xs">
-                            {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+                            {loading ? t('processing') : (isSignUp ? t('sign_up') : t('sign_in'))}
                          </button>
 
                          <div className="relative py-2 my-2">
@@ -342,18 +353,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                                 <div className="w-full border-t border-slate-700"></div>
                             </div>
                             <div className="relative flex justify-center text-xs">
-                                <span className="px-2 bg-[#151f32] text-slate-500 font-medium">Or continue with</span>
+                                <span className="px-2 bg-[#151f32] text-slate-500 font-medium">{t('or_continue_with')}</span>
                             </div>
                          </div>
 
                          <button type="button" onClick={handleGoogleLogin} className="w-full bg-white hover:bg-slate-100 text-slate-900 font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors text-xs uppercase tracking-wide shadow-sm">
-                            <Icons.Google className="w-4 h-4" /> Sign in with Google
+                            <Icons.Google className="w-4 h-4" /> {t('sign_in_google')}
                          </button>
 
                          <div className="text-center pt-4 pb-2">
-                            <span className="text-slate-400 text-xs">{isSignUp ? 'Already have an account? ' : "Don't have an account? "}</span>
+                            <span className="text-slate-400 text-xs">{isSignUp ? t('already_account') + ' ' : t('dont_have_account') + ' '}</span>
                             <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-red-500 font-bold text-xs hover:underline uppercase">
-                                {isSignUp ? 'Log in' : 'Sign up'}
+                                {isSignUp ? t('log_in') : t('sign_up')}
                             </button>
                          </div>
                     </form>

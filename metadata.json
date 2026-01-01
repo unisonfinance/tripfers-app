@@ -1,5 +1,5 @@
 {
-  "name": "GetTransfer Clone",
+  "name": "Tripfers Clone",
   "description": "A comprehensive transfer booking platform connecting clients with drivers, featuring bidding, real-time tracking simulation, and admin management.",
   "requestFramePermissions": [
     "geolocation",

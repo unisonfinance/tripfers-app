@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { mockBackend } from '../../services/mockBackend';
+import { backend } from '../../services/BackendService';
 import { Transaction } from '../../types';
 import { Icons } from '../Icons';
+import { useTranslation } from 'react-i18next';
 
 interface ReportsViewProps {
   onBack: () => void;
 }
 
 export const ReportsView: React.FC<ReportsViewProps> = ({ onBack }) => {
+  const { t, i18n } = useTranslation();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -15,10 +17,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBack }) => {
   const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear());
 
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June', 
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
+  const months = Array.from({ length: 12 }, (_, i) => new Date(2024, i, 1).toLocaleString(i18n.language, { month: 'long' }));
 
   const years = Array.from({ length: 5 }, (_, i) => currentDate.getFullYear() - i);
 
@@ -29,10 +28,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBack }) => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const user = mockBackend.getCurrentUser();
+      const user = backend.getCurrentUser();
       if (!user) return;
 
-      const allTransactions = await mockBackend.getTransactions();
+      const allTransactions = await backend.getTransactions();
       // Filter for this user and Payouts/Commissions (money movement)
       const userTransactions = allTransactions.filter(t => 
         t.userId === user.id && (t.type === 'PAYOUT' || t.type === 'COMMISSION' || t.type === 'PAYMENT')
@@ -78,7 +77,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBack }) => {
           >
             <Icons.ArrowLeft className="w-5 h-5 text-slate-600" />
           </button>
-          <h2 className="text-lg font-bold text-slate-800">Reports</h2>
+          <h2 className="text-lg font-bold text-slate-800">{t('reports')}</h2>
         </div>
         <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-full">
           <Icons.Download className="w-5 h-5" />
@@ -88,19 +87,19 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBack }) => {
       {/* Filters */}
       <div className="bg-white px-4 py-4 border-b border-slate-200 grid grid-cols-2 gap-3">
         <div className="relative">
-          <label className="block text-xs font-medium text-slate-500 mb-1">Month</label>
+          <label className="block text-xs font-medium text-slate-500 mb-1">{t('month')}</label>
           <select 
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
             className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 px-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             {months.map((m, i) => (
-              <option key={m} value={i}>{m}</option>
+              <option key={i} value={i}>{m}</option>
             ))}
           </select>
         </div>
         <div className="relative">
-          <label className="block text-xs font-medium text-slate-500 mb-1">Year</label>
+          <label className="block text-xs font-medium text-slate-500 mb-1">{t('year')}</label>
           <select 
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
@@ -116,18 +115,18 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBack }) => {
       {/* Summary Card */}
       <div className="px-4 py-4">
         <div className="bg-blue-600 rounded-xl p-4 text-white shadow-lg shadow-blue-200">
-          <p className="text-blue-100 text-sm font-medium mb-1">Total Payouts ({months[selectedMonth]})</p>
+          <p className="text-blue-100 text-sm font-medium mb-1">{t('total_payouts')} ({months[selectedMonth]})</p>
           <div className="text-3xl font-bold">${totalAmount.toFixed(2)}</div>
           <div className="mt-4 flex items-center gap-2 text-xs text-blue-100 bg-blue-700/50 w-fit px-2 py-1 rounded-lg">
             <Icons.Calendar className="w-3 h-3" />
-            <span>{filteredTransactions.length} transactions</span>
+            <span>{filteredTransactions.length} {t('transactions')}</span>
           </div>
         </div>
       </div>
 
       {/* Transactions List */}
       <div className="flex-1 overflow-y-auto px-4 pb-20">
-        <h3 className="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wider">History</h3>
+        <h3 className="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wider">{t('history')}</h3>
         
         {loading ? (
           <div className="space-y-3">
@@ -138,7 +137,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBack }) => {
         ) : filteredTransactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-slate-400">
             <Icons.Filter className="w-12 h-12 mb-3 opacity-20" />
-            <p className="text-sm">No transactions found for this period</p>
+            <p className="text-sm">{t('no_transactions_found')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -171,7 +170,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBack }) => {
                     t.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
                     'bg-red-100 text-red-700'
                   }`}>
-                    {t.status}
+                    {t(`status_${t.status.toLowerCase()}`, t.status)}
                   </span>
                 </div>
               </div>

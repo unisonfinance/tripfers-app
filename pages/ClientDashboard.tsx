@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Job, JobStatus, UserRole, BookingType } from '../types';
-import { mockBackend } from '../services/mockBackend';
+import { backend } from '../services/BackendService';
 import { Icons } from '../components/Icons';
 import { AutocompleteInput } from '../components/AutocompleteInput';
 import { useTranslation } from 'react-i18next';
@@ -68,41 +68,43 @@ const CustomCheckbox: React.FC<{ checked: boolean, onChange: (e: any) => void, l
 );
 
 const ChildrenModal = ({ isOpen, onClose, childrenData, onChange }: any) => {
+    const { t } = useTranslation();
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 p-4 animate-fade-in" onClick={onClose}>
             <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl p-6 space-y-6 animate-slide-up" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-lg dark:text-white">Children Seats</h3>
+                    <h3 className="font-bold text-lg dark:text-white">{t('children_seats')}</h3>
                     <button onClick={onClose}><Icons.X className="w-6 h-6 text-slate-400" /></button>
                 </div>
                 {['infant', 'convertible', 'booster'].map((type: string) => (
                     <div key={type} className="flex justify-between items-center">
-                         <div>
-                             <p className="font-bold text-slate-900 dark:text-white capitalize">{type}</p>
-                             <p className="text-xs text-slate-500">
-                                {type === 'infant' ? '0-9 kg' : type === 'convertible' ? '9-18 kg' : '15-36 kg'}
-                             </p>
-                         </div>
-                         <Counter value={childrenData[type]} onChange={v => onChange(type, v)} />
+                        <div>
+                            <p className="font-bold text-slate-900 dark:text-white capitalize">{t(type + '_seat')}</p>
+                            <p className="text-xs text-slate-500">
+                               {type === 'infant' ? '0-9 kg' : type === 'convertible' ? '9-18 kg' : '15-36 kg'}
+                            </p>
+                        </div>
+                        <Counter value={childrenData[type]} onChange={v => onChange(type, v)} />
                     </div>
                 ))}
-                <button onClick={onClose} className="w-full bg-black text-white py-3 rounded-xl font-bold">Done</button>
+                <button onClick={onClose} className="w-full bg-black text-white py-3 rounded-xl font-bold">{t('done')}</button>
             </div>
         </div>
     );
 };
 
 const WaitingDetailsModal = ({ isOpen, onClose }: any) => {
+    const { t } = useTranslation();
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fade-in" onClick={onClose}>
             <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl p-6 animate-slide-up relative">
                  <button onClick={onClose} className="absolute top-4 right-4"><Icons.X className="w-5 h-5 text-slate-400" /></button>
-                 <h3 className="font-bold text-lg mb-4 dark:text-white">Free Waiting Time</h3>
+                 <h3 className="font-bold text-lg mb-4 dark:text-white">{t('free_waiting_time')}</h3>
                  <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
-                     <li className="flex gap-3"><Icons.Plane className="w-5 h-5 text-slate-400"/> <span>60 minutes at airports after actual landing time</span></li>
-                     <li className="flex gap-3"><Icons.Home className="w-5 h-5 text-slate-400"/> <span>15 minutes at hotels or residential addresses</span></li>
+                     <li className="flex gap-3"><Icons.Plane className="w-5 h-5 text-slate-400"/> <span>{t('waiting_airport')}</span></li>
+                     <li className="flex gap-3"><Icons.Home className="w-5 h-5 text-slate-400"/> <span>{t('waiting_residential')}</span></li>
                  </ul>
             </div>
         </div>
@@ -111,6 +113,7 @@ const WaitingDetailsModal = ({ isOpen, onClose }: any) => {
 
 // Payment Simulation Modal
 const PaymentModal = ({ isOpen, onClose, amount, driverName, onPay }: any) => {
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
     
     if (!isOpen) return null;
@@ -130,20 +133,20 @@ const PaymentModal = ({ isOpen, onClose, amount, driverName, onPay }: any) => {
                 <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white z-10"><Icons.X className="w-5 h-5"/></button>
                 
                 <div className="bg-[#635bff] p-6 text-white text-center">
-                    <h3 className="font-bold text-xl mb-1">Secure Payment</h3>
-                    <p className="text-white/80 text-sm">Powered by Stripe</p>
+                    <h3 className="font-bold text-xl mb-1">{t('secure_payment_title')}</h3>
+                    <p className="text-white/80 text-sm">{t('powered_by_stripe')}</p>
                 </div>
 
                 <div className="p-6 space-y-6">
                     <div className="text-center">
-                        <p className="text-slate-500 text-sm uppercase font-bold tracking-wide">Total Amount</p>
+                        <p className="text-slate-500 text-sm uppercase font-bold tracking-wide">{t('total_amount')}</p>
                         <p className="text-4xl font-black text-slate-900 dark:text-white my-2">${amount}</p>
-                        <p className="text-xs text-slate-400">Driver: {driverName}</p>
+                        <p className="text-xs text-slate-400">{t('driver')}: {driverName}</p>
                     </div>
 
                     <div className="space-y-3">
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-slate-500 uppercase">Card Number</label>
+                            <label className="text-xs font-bold text-slate-500 uppercase">{t('card_number')}</label>
                             <div className="relative">
                                 <Icons.Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <input type="text" placeholder="4242 4242 4242 4242" className="w-full pl-10 p-3 bg-slate-50 dark:bg-slate-900 border rounded-lg dark:border-slate-700 font-mono text-sm" />
@@ -151,11 +154,11 @@ const PaymentModal = ({ isOpen, onClose, amount, driverName, onPay }: any) => {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-500 uppercase">Expiry</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase">{t('expiry')}</label>
                                 <input type="text" placeholder="MM / YY" className="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-lg dark:border-slate-700 font-mono text-sm text-center" />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-500 uppercase">CVC</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase">{t('cvc')}</label>
                                 <input type="text" placeholder="123" className="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-lg dark:border-slate-700 font-mono text-sm text-center" />
                             </div>
                         </div>
@@ -166,7 +169,7 @@ const PaymentModal = ({ isOpen, onClose, amount, driverName, onPay }: any) => {
                         disabled={loading}
                         className="w-full bg-black hover:bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
                     >
-                        {loading ? 'Processing...' : `PAY $${amount}`}
+                        {loading ? t('processing') : `${t('pay')} $${amount}`}
                     </button>
                 </div>
             </div>
@@ -304,7 +307,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
             () => console.log("Geolocation permission denied")
         );
     }
-    mockBackend.getPricingConfig().then(setPricingConfig);
+    backend.getPricingConfig().then(setPricingConfig);
   }, []);
 
   useEffect(() => {
@@ -327,7 +330,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
   useEffect(() => {
     if (user) {
         const loadJobs = async () => {
-            const data = await mockBackend.getJobs(user.role, user.id);
+            const data = await backend.getJobs(user.role, user.id);
             setJobs(data);
         };
 
@@ -335,7 +338,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
         loadJobs();
         
         // REAL-TIME SUBSCRIPTION: Instant updates for bids
-        const unsubscribe = mockBackend.subscribe(loadJobs);
+        const unsubscribe = backend.subscribe(loadJobs);
         
         // Keep polling as backup
         const interval = setInterval(loadJobs, 5000);
@@ -349,7 +352,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
 
   const loadJobs = async () => {
     if (user) {
-        const data = await mockBackend.getJobs(user.role, user.id);
+        const data = await backend.getJobs(user.role, user.id);
         setJobs(data);
     }
   };
@@ -361,7 +364,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
           jobsWithBids.forEach(job => {
                job.bids.forEach(async bid => {
                   if (!driverDetails[bid.driverId]) {
-                      const profile = await mockBackend.getDriverPublicProfile(bid.driverId);
+                      const profile = await backend.getDriverPublicProfile(bid.driverId);
                       if (profile) {
                           setDriverDetails(prev => ({...prev, [bid.driverId]: profile}));
                       }
@@ -459,7 +462,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
 
   const getPrice = (dist: number, type: string) => {
       if (!pricingConfig) return 0;
-      return mockBackend.calculatePrice(dist, type);
+      return backend.calculatePrice(dist, type);
   };
   
   const handleEditJob = (job: Job) => {
@@ -539,10 +542,10 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
     setLoading(true);
     try {
         if (editingJobId) {
-            await mockBackend.updateJob(editingJobId, jobData);
+            await backend.updateJob(editingJobId, jobData);
             setEditingJobId(null);
         } else {
-            await mockBackend.createJob(jobData);
+            await backend.createJob(jobData);
         }
         // Clear form and RESET TERMS
         setFormData(initialState);
@@ -586,7 +589,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
 
   const confirmCancelJob = async () => {
       if (jobToCancel) {
-          await mockBackend.cancelJob(jobToCancel.id);
+          await backend.cancelJob(jobToCancel.id);
           loadJobs();
           setJobToCancel(null);
       }
@@ -595,7 +598,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
   const handlePaymentSuccess = async () => {
       if (paymentModalData) {
           // 1. Get Integration Config to check if Stripe is enabled
-          const config = await mockBackend.getIntegrations();
+          const config = await backend.getIntegrations();
           
           if (config.stripePublishableKey && config.stripeSecretKey) {
              // 2. Initiate Stripe Checkout (Simulated)
@@ -603,7 +606,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
              
              // Simulate successful payment and redirect back
              alert("Redirecting to Stripe Checkout...\n(Simulated Payment Success)");
-             await mockBackend.acceptBid(paymentModalData.jobId, paymentModalData.bidId);
+             await backend.acceptBid(paymentModalData.jobId, paymentModalData.bidId);
              
              // Add Payment Transaction
              await mockBackend.updateJobStatus(paymentModalData.jobId, JobStatus.ACCEPTED);
@@ -626,7 +629,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
   };
   
   const handleLogout = () => {
-      mockBackend.logout();
+      backend.logout();
       window.location.reload();
   };
 
@@ -669,17 +672,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
       {/* --- VIEW: BOOK --- */}
       {currentView === 'book' && (
         <>
-            {/* Mobile Header for Booking */}
-            <div className="md:hidden flex justify-between items-center p-4 bg-white dark:bg-slate-800 shadow-sm mb-4">
-                 <h1 className="font-bold text-lg dark:text-white">GetTransfer</h1>
-                 <div className="flex gap-2">
-                    {user ? (
-                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600">{user.name.charAt(0)}</div>
-                    ) : (
-                        <button onClick={() => setShowAuthModal(true)} className="text-sm font-bold text-red-600">Log in</button>
-                    )}
-                 </div>
-            </div>
+
 
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 animate-fade-in overflow-hidden max-w-4xl mx-auto md:mt-0">
           
@@ -1120,8 +1113,8 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                 {/* Submit */}
                 {editingJobId && (
                     <div className="bg-amber-100 text-amber-800 p-3 mb-2 rounded-lg flex justify-between items-center mt-4">
-                        <span className="font-bold text-sm">Editing Request #{editingJobId.substring(0,8)}</span>
-                        <button onClick={() => { setEditingJobId(null); setFormData(initialState); setCurrentView('rides'); }} className="text-xs font-bold underline hover:text-amber-900">Cancel Edit</button>
+                        <span className="font-bold text-sm">{t('edit_request')} #{editingJobId.substring(0,8)}</span>
+                        <button onClick={() => { setEditingJobId(null); setFormData(initialState); setCurrentView('rides'); }} className="text-xs font-bold underline hover:text-amber-900">{t('cancel_edit')}</button>
                     </div>
                 )}
 
@@ -1146,16 +1139,16 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-red-200 dark:border-red-900 overflow-hidden mx-4 md:mx-0">
                     <div className="bg-red-50 dark:bg-red-900/20 px-6 py-2 border-b border-red-100 dark:border-red-900/30 flex justify-between items-center">
                         <span className="text-xs font-bold text-red-600 uppercase tracking-wider flex items-center gap-1">
-                            <Icons.Info className="w-4 h-4" /> Draft Request
+                            <Icons.Info className="w-4 h-4" /> {t('draft_request')}
                         </span>
-                        <span className="text-xs text-red-600 font-bold">Step 2 of 3</span>
+                        <span className="text-xs text-red-600 font-bold">{t('step_2_3')}</span>
                     </div>
                     <div className="p-6">
                         <div className="flex flex-col gap-4">
                              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                                  {pendingBooking.pickup} 
                                  <span className="text-slate-400 mx-2">→</span> 
-                                 {pendingBooking.bookingType === 'HOURLY' ? `${pendingBooking.durationHours}h Session` : pendingBooking.dropoff}
+                                 {pendingBooking.bookingType === 'HOURLY' ? t('hours_session', { hours: pendingBooking.durationHours }) : pendingBooking.dropoff}
                              </h3>
                              <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
                                   <span className="flex items-center gap-1">
@@ -1395,19 +1388,19 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-2 flex justify-around items-center z-50 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
         <button onClick={() => setCurrentView('book')} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${currentView === 'book' ? 'text-red-600' : 'text-slate-400'}`}>
             <Icons.Plus className="w-6 h-6" />
-            <span className="text-[10px] font-bold">Book</span>
+            <span className="text-[10px] font-bold">{t('book')}</span>
         </button>
         <button onClick={() => setCurrentView('rides')} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${currentView === 'rides' ? 'text-red-600' : 'text-slate-400'}`}>
             <Icons.Car className="w-6 h-6" />
-            <span className="text-[10px] font-bold">Rides</span>
+            <span className="text-[10px] font-bold">{t('rides')}</span>
         </button>
         <button onClick={() => setCurrentView('support')} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${currentView === 'support' ? 'text-red-600' : 'text-slate-400'}`}>
             <Icons.MessageSquare className="w-6 h-6" />
-            <span className="text-[10px] font-bold">Support</span>
+            <span className="text-[10px] font-bold">{t('support')}</span>
         </button>
         <button onClick={() => setCurrentView('settings')} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${currentView === 'settings' ? 'text-red-600' : 'text-slate-400'}`}>
             <Icons.Settings className="w-6 h-6" />
-            <span className="text-[10px] font-bold">Settings</span>
+            <span className="text-[10px] font-bold">{t('settings')}</span>
         </button>
       </div>
 

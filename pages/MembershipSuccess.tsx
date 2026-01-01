@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { mockBackend } from '../services/mockBackend';
+import { backend } from '../services/BackendService';
 import { Icons } from '../components/Icons';
 import { User } from '../types';
 
@@ -13,7 +13,7 @@ export const MembershipSuccess: React.FC<{ user: User | null }> = ({ user }) => 
         const sessionId = searchParams.get('session_id');
         if (user && sessionId) {
             // Confirm membership with the backend (updates DB, sends email)
-            mockBackend.confirmMembership(user.id, sessionId)
+            backend.confirmMembership(user.id, sessionId)
                 .then(() => {
                     setLoading(false);
                     // Force a small reload delay to ensure app state syncs if needed, 
