@@ -23,6 +23,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
   
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Hardcoded logo as requested - prevents backend fetch crashes
+  const logoUrl = '/favicon.png'; 
 
   useEffect(() => {
     if (isOpen) {
