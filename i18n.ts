@@ -18,7 +18,7 @@ const enTranslation = {
       "booking_details": "Booking Details",
       "pickup_location": "Pickup Location",
       "dropoff_location": "Dropoff Location",
-      "ride_date": "Ride date",
+      "ride_date": "Pick up date",
       "pickup_time": "Pick-up time",
       "flight_number": "Flight Number",
       "name_sign": "Name Sign",

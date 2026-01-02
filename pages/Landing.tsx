@@ -229,7 +229,7 @@ export const Landing: React.FC<LandingProps> = ({ onLogin }) => {
                                       {price ? (
                                         <>
                                             <span className="block text-[8px] md:text-[10px] text-slate-400 font-semibold mb-0.5">{t('from')}</span>
-                                            <span className={`block text-sm md:text-lg font-bold ${isSelected ? 'text-red-600' : 'text-slate-900 dark:text-white'}`}>
+                                            <span className={`block text-sm md:text-lg font-bold tabular-nums tracking-tight ${isSelected ? 'text-red-600' : 'text-slate-900 dark:text-white'}`}>
                                                 US${price}
                                             </span>
                                         </>

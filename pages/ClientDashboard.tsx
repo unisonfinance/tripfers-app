@@ -15,6 +15,7 @@ import { ConfirmationModal } from '../components/ConfirmationModal';
 import { Skeleton } from '../components/Skeleton';
 import { ActiveRideSheet } from '../components/ActiveRideSheet';
 import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 
 interface Coords {
   lat: number;
@@ -752,6 +753,13 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
             setEditingJobId(null);
         } else {
             await backend.createJob(jobData);
+            // Success Confetti
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#16a34a', '#dc2626', '#2563eb', '#fbbf24']
+            });
         }
         // Clear form and RESET TERMS
         setFormData(initialState);
@@ -1206,7 +1214,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                                                 ) : (price ? (
                                                     <>
                                                         <span className="block text-[10px] text-slate-400 font-bold mb-0.5">EST.</span>
-                                                        <span className={`block text-xl font-black ${isSelected ? 'text-green-700' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                        <span className={`block text-xl font-black tabular-nums tracking-tight ${isSelected ? 'text-green-700' : 'text-slate-700 dark:text-slate-300'}`}>
                                                             ${price}
                                                         </span>
                                                     </>
@@ -1246,48 +1254,62 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
             {/* 5. EXTRAS */}
             <div className="p-4 md:p-6 space-y-4">
                 {/* Date & Time */}
-                <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                <div className="grid grid-cols-2 gap-3">
                      <div>
-                         <label className="text-[10px] text-slate-400 uppercase font-bold pl-1">{t('ride_date')}</label>
+                         <div className="flex justify-between items-center mb-1">
+                             <label className="text-[10px] text-slate-400 uppercase font-bold pl-1">{t('ride_date')}</label>
+                             <button 
+                                type="button"
+                                onClick={() => {
+                                    const now = new Date();
+                                    const dateStr = now.toISOString().split('T')[0];
+                                    setFormData(prev => ({...prev, date: dateStr}));
+                                }}
+                                className="text-[10px] font-bold text-red-600 hover:text-red-700 uppercase mr-3"
+                             >
+                                Today?
+                             </button>
+                         </div>
                          <div className="relative">
                              <input 
                                 type="date" 
                                 value={formData.date} 
                                 onChange={e => setFormData(prev => ({...prev, date: e.target.value}))} 
-                                className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white text-sm" 
+                                className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" 
                              />
                          </div>
                      </div>
                      <div>
-                         <label className="text-[10px] text-slate-400 uppercase font-bold pl-1">{t('pickup_time')}</label>
+                         <div className="flex justify-between items-center mb-1">
+                             <label className="text-[10px] text-slate-400 uppercase font-bold pl-1">{t('pickup_time')}</label>
+                             <button 
+                                type="button"
+                                onClick={() => {
+                                    const now = new Date();
+                                    const timeStr = now.toTimeString().slice(0,5);
+                                    setFormData(prev => ({...prev, time: timeStr}));
+                                }}
+                                className="text-[10px] font-bold text-red-600 hover:text-red-700 uppercase mr-3"
+                             >
+                                Now?
+                             </button>
+                         </div>
                          <div className="relative">
                              <input 
                                 type="time" 
                                 value={formData.time} 
                                 onChange={e => setFormData(prev => ({...prev, time: e.target.value}))} 
-                                className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white text-sm" 
+                                className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" 
                              />
                          </div>
                      </div>
-                     <button 
-                        type="button"
-                        onClick={() => {
-                            const now = new Date();
-                            const timeStr = now.toTimeString().slice(0,5);
-                            const dateStr = now.toISOString().split('T')[0];
-                            setFormData(prev => ({...prev, date: dateStr, time: timeStr}));
-                        }}
-                        className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-2 rounded-lg text-sm font-bold h-10 mb-0.5 whitespace-nowrap min-w-[50px]"
-                     >
-                        Now
-                     </button>
                 </div>
                 
                 {/* Free waiting info */}
                 <div className="flex justify-end mt-2 mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
                      <button onClick={() => setShowWaitingModal(true)} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity group">
-                         <span className="font-bold text-slate-900 dark:text-white">{t('free_waiting_label')}</span>
-                         <Icons.Info className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white" />
+                         <span className="font-bold text-xs text-slate-500 dark:text-slate-200">{t('free_waiting_label')}</span>
+                         <Icons.Info className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white" />
                      </button>
                 </div>
 
@@ -1361,7 +1383,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                         <Icons.Plane className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input 
                             type="text"
-                            className="w-full pl-10 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-white text-sm focus:ring-1 focus:ring-red-500 outline-none" 
+                            className="w-full pl-10 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" 
                             placeholder={t('flight_number')}
                             value={formData.flightNumber}
                             onChange={e => setFormData(prev => ({...prev, flightNumber: e.target.value}))}
@@ -1371,7 +1393,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                         <Icons.User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input 
                             type="text"
-                            className="w-full pl-10 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-white text-sm focus:ring-1 focus:ring-red-500 outline-none" 
+                            className="w-full pl-10 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" 
                             placeholder={t('name_sign')}
                             value={formData.nameSign}
                             onChange={e => setFormData(prev => ({...prev, nameSign: e.target.value}))}
@@ -1384,7 +1406,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                 <div className="relative">
                     <Icons.MessageSquare className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
                     <textarea 
-                        className="w-full pl-10 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-white text-sm resize-none focus:ring-1 focus:ring-red-500 outline-none" 
+                        className="w-full pl-10 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-white text-sm resize-none focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" 
                         placeholder={t('comment_placeholder')}
                         rows={2}
                         value={formData.comment}
@@ -1420,7 +1442,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                 <button 
                     onClick={() => handleCreate()} 
                     disabled={loading}
-                    className="w-full bg-black hover:bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg uppercase tracking-wide text-lg mt-2 transition-colors"
+                    className="w-full bg-black hover:bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg uppercase tracking-wide text-lg mt-2 transition-all active:scale-95"
                 >
                     {loading ? t('calculating') : (editingJobId ? 'UPDATE REQUEST' : (isRestoredDraft ? 'PUBLISH REQUEST' : t('get_offers')))}
                 </button>
@@ -1469,7 +1491,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                         <div className="mt-6">
                              <button 
                                 onClick={restoreDraftFromCard}
-                                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-md transition-colors flex items-center justify-center gap-2"
+                                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
                              >
                                 {user ? t('publish_request_now') : t('login_publish')}
                              </button>
@@ -1523,7 +1545,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                         <div className="px-4 md:px-0 mb-4">
                             <button
                                 onClick={() => { setEditingJobId(null); setFormData(initialState); setCurrentView('book'); }}
-                                className="w-full bg-black hover:bg-slate-800 text-white font-bold py-3 rounded-xl shadow-sm flex items-center justify-center gap-2 transition-colors"
+                                className="w-full bg-black hover:bg-slate-800 text-white font-bold py-3 rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95"
                             >
                                 <Icons.Plus className="w-5 h-5" />
                                 {t('make_new_booking')}
@@ -1623,7 +1645,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                                             <button className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white p-2.5 rounded-xl transition-colors">
                                                 <Icons.MessageSquare className="w-5 h-5" />
                                             </button>
-                                            <button onClick={() => setPaymentModalData({ jobId: job.id, bidId: bid.id, amount: bid.amount, driverName: bid.driverName })} className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-md uppercase tracking-wide transform hover:scale-105 transition-all">
+                                            <button onClick={() => setPaymentModalData({ jobId: job.id, bidId: bid.id, amount: bid.amount, driverName: bid.driverName })} className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-md uppercase tracking-wide transform hover:scale-105 active:scale-95 transition-all">
                                                 {t('accept')}
                                             </button>
                                         </div>
@@ -1702,7 +1724,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                         <Icons.Car className="w-8 h-8 text-slate-400" />
                     </div>
                     <p className="text-slate-500 dark:text-slate-400">{t('no_transfers')}</p>
-                    <button onClick={() => setCurrentView('book')} className="text-red-600 font-bold mt-2 hover:underline">Book a ride now</button>
+                    <button onClick={() => setCurrentView('book')} className="text-red-600 font-bold mt-2 hover:underline transition-all active:scale-95">Book a ride now</button>
                 </div>
            )}
         </div>
@@ -1743,19 +1765,19 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
 
       {/* --- MOBILE FOOTER NAV --- */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-2 flex justify-around items-center z-50 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
-        <button onClick={() => setCurrentView('book')} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${currentView === 'book' ? 'text-red-600' : 'text-slate-400'}`}>
+        <button onClick={() => setCurrentView('book')} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all active:scale-95 ${currentView === 'book' ? 'text-red-600' : 'text-slate-400'}`}>
             <Icons.Plus className="w-6 h-6" />
             <span className="text-[10px] font-bold">{t('book')}</span>
         </button>
-        <button onClick={() => setCurrentView('rides')} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${currentView === 'rides' ? 'text-red-600' : 'text-slate-400'}`}>
+        <button onClick={() => setCurrentView('rides')} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all active:scale-95 ${currentView === 'rides' ? 'text-red-600' : 'text-slate-400'}`}>
             <Icons.Car className="w-6 h-6" />
             <span className="text-[10px] font-bold">{t('rides')}</span>
         </button>
-        <button onClick={() => setCurrentView('support')} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${currentView === 'support' ? 'text-red-600' : 'text-slate-400'}`}>
+        <button onClick={() => setCurrentView('support')} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all active:scale-95 ${currentView === 'support' ? 'text-red-600' : 'text-slate-400'}`}>
             <Icons.MessageSquare className="w-6 h-6" />
             <span className="text-[10px] font-bold">{t('support')}</span>
         </button>
-        <button onClick={() => setCurrentView('settings')} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${currentView === 'settings' ? 'text-red-600' : 'text-slate-400'}`}>
+        <button onClick={() => setCurrentView('settings')} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all active:scale-95 ${currentView === 'settings' ? 'text-red-600' : 'text-slate-400'}`}>
             <Icons.Settings className="w-6 h-6" />
             <span className="text-[10px] font-bold">{t('settings')}</span>
         </button>
