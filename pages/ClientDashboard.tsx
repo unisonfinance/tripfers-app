@@ -13,6 +13,7 @@ import { SettingsView } from './client/SettingsView';
 import { ChatWindow } from '../components/ChatWindow';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 import { Skeleton } from '../components/Skeleton';
+import { ActiveRideSheet } from '../components/ActiveRideSheet';
 
 interface Coords {
   lat: number;
@@ -324,6 +325,10 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
   const [paymentModalData, setPaymentModalData] = useState<{jobId: string, bidId: string, amount: number, driverName: string} | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
+  // --- ACTIVE RIDE STATE ---
+  const [activeJob, setActiveJob] = useState<Job | null>(null);
+  const [activeDriver, setActiveDriver] = useState<User | null>(null);
+
   // --- MAP & PRICING ---
   const mapRef = useRef<HTMLDivElement>(null);
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
@@ -448,6 +453,23 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                   }
               });
           });
+      }
+
+      // Check for Active Ride (In Progress / En Route / Arrived)
+      const currentActive = jobs.find(j => 
+          [JobStatus.DRIVER_EN_ROUTE, JobStatus.DRIVER_ARRIVED, JobStatus.IN_PROGRESS].includes(j.status)
+      );
+      
+      if (currentActive) {
+          setActiveJob(currentActive);
+          if (currentActive.driverId && (!activeDriver || activeDriver.id !== currentActive.driverId)) {
+              backend.getDriverPublicProfile(currentActive.driverId).then(profile => {
+                  if (profile) setActiveDriver(profile);
+              });
+          }
+      } else {
+          setActiveJob(null);
+          setActiveDriver(null);
       }
   }, [jobs]);
 
@@ -1571,6 +1593,15 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
         onClose={() => setPaymentModalData(null)}
         onPay={handlePaymentSuccess}
       />
+
+      {activeJob && (
+          <ActiveRideSheet 
+              job={activeJob} 
+              driver={activeDriver} 
+              onCall={() => alert('Calling driver...')}
+              onMessage={() => alert('Opening chat...')}
+          />
+      )}
     </div>
   );
 };
