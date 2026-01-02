@@ -1025,6 +1025,8 @@ const UserDetailsModal = ({ user, onClose, onUpdate, onPayout }: any) => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
                          {/* ACCOUNT ACTIONS (DELETE) */}
                          <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                              <h4 className="font-bold text-lg dark:text-white text-red-600 flex items-center gap-2">
