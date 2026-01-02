@@ -501,6 +501,7 @@ const SettingsView = ({
         adminFaviconUrl: brandingSettings?.adminFaviconUrl || '',
         loginFormImageUrl: brandingSettings?.loginFormImageUrl || '',
         mainSiteLogoUrl: brandingSettings?.mainSiteLogoUrl || '',
+        mainSiteLogoDarkUrl: brandingSettings?.mainSiteLogoDarkUrl || '',
         logoHeight: brandingSettings?.logoHeight || 32,
         logoMarginLeft: brandingSettings?.logoMarginLeft || 0,
         logoMarginTop: brandingSettings?.logoMarginTop || 0,
@@ -596,21 +597,42 @@ const SettingsView = ({
                             <p className="text-[10px] text-slate-400 mt-1">Image to display at the top of the Login/Register form.</p>
                         </div>
 
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Main Site Logo URL</label>
-                            <div className="flex gap-2 items-center">
-                                {localBranding.mainSiteLogoUrl && (
-                                    <img src={localBranding.mainSiteLogoUrl} alt="Preview" className="w-auto h-9 p-1 bg-white rounded border border-slate-200 object-contain" />
-                                )}
-                                <input 
-                                    type="text" 
-                                    value={localBranding.mainSiteLogoUrl || ''}
-                                    onChange={e => setLocalBranding({...localBranding, mainSiteLogoUrl: e.target.value})}
-                                    className="flex-1 p-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-blue-500 dark:text-white"
-                                    placeholder="https://example.com/site-logo.png"
-                                />
+                        <div className="space-y-4">
+                            {/* LIGHT THEME LOGO */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Main Site Logo BB URL (Light Theme)</label>
+                                <div className="flex gap-2 items-center">
+                                    {localBranding.mainSiteLogoUrl && (
+                                        <img src={localBranding.mainSiteLogoUrl} alt="Preview BB" className="w-auto h-9 p-1 bg-white rounded border border-slate-200 object-contain" />
+                                    )}
+                                    <input 
+                                        type="text" 
+                                        value={localBranding.mainSiteLogoUrl || ''}
+                                        onChange={e => setLocalBranding({...localBranding, mainSiteLogoUrl: e.target.value})}
+                                        className="flex-1 p-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-blue-500 dark:text-white"
+                                        placeholder="https://example.com/site-logo-black.png"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-1">Logo for light background (White Theme).</p>
                             </div>
-                            <p className="text-[10px] text-slate-400 mt-1">Replaces "TripFers" text in the header.</p>
+
+                            {/* DARK THEME LOGO */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Main Site Logo WB URL (Dark Theme)</label>
+                                <div className="flex gap-2 items-center">
+                                    {localBranding.mainSiteLogoDarkUrl && (
+                                        <img src={localBranding.mainSiteLogoDarkUrl} alt="Preview WB" className="w-auto h-9 p-1 bg-slate-900 rounded border border-slate-700 object-contain" />
+                                    )}
+                                    <input 
+                                        type="text" 
+                                        value={localBranding.mainSiteLogoDarkUrl || ''}
+                                        onChange={e => setLocalBranding({...localBranding, mainSiteLogoDarkUrl: e.target.value})}
+                                        className="flex-1 p-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-blue-500 dark:text-white"
+                                        placeholder="https://example.com/site-logo-white.png"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-1">Logo for dark background (Dark Theme).</p>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-4 gap-4">
@@ -717,6 +739,8 @@ const SettingsView = ({
 const UserDetailsModal = ({ user, onClose, onUpdate, onPayout }: any) => {
     if (!user) return null;
 
+    const [viewPhoto, setViewPhoto] = useState<string | null>(null);
+
     const handleUpdatePhotoStatus = async (vehicleId: string, photoId: string, newStatus: 'APPROVED' | 'REJECTED') => {
          const updatedVehicles = user.vehicles?.map((v: VehicleSettings) => {
             if (v.id === vehicleId) {
@@ -755,191 +779,246 @@ const UserDetailsModal = ({ user, onClose, onUpdate, onPayout }: any) => {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-             <div className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-slide-up max-h-[90vh] overflow-y-auto">
-                 <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+        <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-0 md:p-4 animate-fade-in overflow-hidden">
+             <div className="bg-white dark:bg-slate-900 w-full h-full md:h-auto md:max-h-[90vh] md:max-w-3xl md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up">
+                 
+                 {/* HEADER */}
+                 <div className="p-4 md:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
                      <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-xl font-bold shadow-sm">
-                             {user.avatar ? <img src={user.avatar} className="w-full h-full rounded-full object-cover"/> : user.name.charAt(0)}
+                         <div className="w-12 h-12 md:w-14 md:h-14 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-xl font-bold shadow-sm overflow-hidden">
+                             {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover"/> : user.name.charAt(0)}
                          </div>
                          <div>
-                             <h3 className="font-bold text-lg dark:text-white">{user.name}</h3>
-                             <p className="text-xs text-slate-500">{user.email}</p>
+                             <h3 className="font-black text-lg md:text-xl dark:text-white leading-tight">{user.name}</h3>
+                             <div className="flex items-center gap-2 text-xs md:text-sm text-slate-500 font-medium">
+                                 <span>{user.email}</span>
+                                 <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                 <span className="uppercase tracking-wider text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">{user.role}</span>
+                             </div>
                          </div>
                      </div>
-                     <button onClick={onClose}><Icons.X className="w-6 h-6 dark:text-white"/></button>
+                     <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <Icons.X className="w-6 h-6 dark:text-white"/>
+                     </button>
                  </div>
                  
-                 <div className="p-6 space-y-6">
+                 {/* SCROLLABLE CONTENT */}
+                 <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scrollbar-hide">
+                     
+                     {/* STATS GRID */}
                      <div className="grid grid-cols-2 gap-4">
-                         <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-xl">
-                             <p className="text-xs font-bold text-slate-400 uppercase">Role</p>
-                             <p className="font-bold dark:text-white">{user.role}</p>
+                         <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Current Balance</p>
+                             <p className="font-black text-2xl md:text-3xl text-slate-900 dark:text-white">${user.balance?.toFixed(2) || '0.00'}</p>
                          </div>
-                         <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-xl">
-                             <p className="text-xs font-bold text-slate-400 uppercase">Balance</p>
-                             <p className="font-bold text-green-600">${user.balance || 0}</p>
+                         <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Account Status</p>
+                             <div className="flex items-center gap-2">
+                                <StatusBadge status={user.status} className="text-sm px-3 py-1" />
+                             </div>
                          </div>
                      </div>
 
                      {user.role === UserRole.DRIVER && (
                         <>
-                         {/* PAYMENT VERIFICATION SECTION */}
-                         <div className="bg-slate-50 dark:bg-slate-700/50 p-6 rounded-xl border border-slate-200 dark:border-slate-600">
-                            <h4 className="font-bold text-lg mb-4 flex items-center gap-2 dark:text-white">
-                                <Icons.DollarSign className="w-5 h-5"/> Payment Verification
-                            </h4>
-                            
-                            <div className="space-y-4">
-                                <div>
-                                    <p className="text-xs font-bold text-slate-500 uppercase mb-2">PayPal Email</p>
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-600 gap-3">
-                                        <div className="flex items-center gap-2 overflow-hidden">
-                                            <Icons.Mail className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                                            <span className="font-mono text-sm sm:text-base dark:text-white break-all">{user.paypalEmail || 'Not provided'}</span>
-                                        </div>
-                                        
-                                        <div className="flex-shrink-0">
-                                            {user.paymentVerificationStatus === 'PENDING' && (
-                                                <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-700 text-xs px-3 py-1.5 rounded-lg font-bold animate-pulse w-full sm:w-auto justify-center">
-                                                    <Icons.Clock className="w-3 h-3" /> VERIFICATION NEEDED
-                                                </span>
-                                            )}
-                                            {user.paymentVerificationStatus === 'APPROVED' && (
-                                                <span className="inline-flex items-center gap-1.5 bg-green-100 text-green-700 text-xs px-3 py-1.5 rounded-lg font-bold w-full sm:w-auto justify-center">
-                                                    <Icons.Check className="w-3 h-3" /> APPROVED
-                                                </span>
-                                            )}
-                                            {user.paymentVerificationStatus === 'REJECTED' && (
-                                                <span className="inline-flex items-center gap-1.5 bg-red-100 text-red-700 text-xs px-3 py-1.5 rounded-lg font-bold w-full sm:w-auto justify-center">
-                                                    <Icons.X className="w-3 h-3" /> REJECTED
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
+                         {/* VEHICLE PHOTOS SECTION (REDESIGNED) */}
+                         <div className="space-y-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600">
+                                    <Icons.Car className="w-4 h-4" />
                                 </div>
-
-                                <div className="flex flex-col sm:flex-row gap-3">
-                                    <button 
-                                        onClick={() => handleUpdatePaymentStatus('APPROVED')}
-                                        className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-sm active:scale-95"
-                                    >
-                                        <Icons.Check className="w-4 h-4" /> Approve Payment
-                                    </button>
-                                    <button 
-                                        onClick={() => handleUpdatePaymentStatus('REJECTED')}
-                                        className="flex-1 flex items-center justify-center gap-2 bg-white hover:bg-red-50 text-red-600 border border-red-200 py-3 rounded-xl font-bold text-sm transition-all shadow-sm active:scale-95"
-                                    >
-                                        <Icons.X className="w-4 h-4" /> Reject
-                                    </button>
-                                </div>
+                                <h4 className="font-bold text-lg dark:text-white">Vehicle Gallery</h4>
                             </div>
-                        </div>
 
-                         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
-                             <h4 className="font-bold mb-4 dark:text-white flex items-center gap-2">
-                                <Icons.FileText className="w-5 h-5 text-slate-500" />
-                                Driver Documents
-                             </h4>
-                             {user.documents && user.documents.length > 0 ? (
-                                 <div className="space-y-4">
-                                     {user.documents.map((doc: any) => (
-                                         <div key={doc.id} className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-                                             <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800">
-                                                 <div>
-                                                     <p className="text-sm font-bold text-slate-900 dark:text-white mb-0.5">
-                                                         {DOC_LABELS[doc.type] || doc.type}
-                                                     </p>
-                                                     <p className="text-xs text-slate-500">
-                                                         {new Date(doc.uploadedAt).toLocaleDateString()} • {new Date(doc.uploadedAt).toLocaleTimeString()}
-                                                     </p>
-                                                 </div>
-                                                 <StatusBadge status={doc.status} />
-                                             </div>
-                                             
-                                             <div className="p-3 bg-slate-50 dark:bg-slate-900 flex flex-wrap gap-2 items-center justify-between">
-                                                 <a 
-                                                     href={doc.url} 
-                                                     target="_blank" 
-                                                     rel="noreferrer"
-                                                     className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-blue-400 hover:text-blue-600 transition-all shadow-sm"
-                                                 >
-                                                     <Icons.Eye className="w-4 h-4" /> View File
-                                                 </a>
-                                                 
-                                                 <div className="flex gap-2 flex-1 min-w-[200px] justify-end">
-                                                     {doc.status !== 'APPROVED' && (
-                                                         <button 
-                                                             onClick={() => handleUpdateDocumentStatus(doc.id, 'APPROVED')}
-                                                             className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95"
-                                                         >
-                                                             <Icons.Check className="w-4 h-4" /> Approve
-                                                         </button>
-                                                     )}
-                                                     {doc.status !== 'REJECTED' && (
-                                                         <button 
-                                                             onClick={() => handleUpdateDocumentStatus(doc.id, 'REJECTED')}
-                                                             className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 rounded-lg text-xs font-bold transition-all active:scale-95"
-                                                         >
-                                                             <Icons.X className="w-4 h-4" /> Reject
-                                                         </button>
-                                                     )}
-                                                 </div>
-                                             </div>
-                                         </div>
-                                     ))}
-                                 </div>
-                             ) : (
-                                 <div className="text-center py-8 bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
-                                     <Icons.File className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                                     <p className="text-sm text-slate-500">No documents uploaded yet.</p>
-                                 </div>
-                             )}
-                        </div>
-
-                        {/* Vehicle Photos Approval Section */}
-                        <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">
-                            <h4 className="font-bold mb-4 dark:text-white">Vehicle Photos</h4>
                             {user.vehicles && user.vehicles.length > 0 ? (
-                                <div className="space-y-4">
+                                <div className="space-y-6">
                                     {user.vehicles.map((v: VehicleSettings) => (
-                                        <div key={v.id} className="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl">
-                                            <p className="text-xs font-bold text-slate-500 mb-2 uppercase">{v.make} {v.model} ({v.plate})</p>
-                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        <div key={v.id} className="bg-slate-50 dark:bg-slate-800/30 p-4 md:p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div>
+                                                    <p className="font-black text-base dark:text-white">{v.make} {v.model}</p>
+                                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{v.plate} • {v.color}</p>
+                                                </div>
+                                                <span className="px-3 py-1 bg-white dark:bg-slate-800 rounded-full text-xs font-bold shadow-sm border border-slate-100 dark:border-slate-700">
+                                                    {v.year}
+                                                </span>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                                 {v.photos && v.photos.map((p: VehiclePhoto) => (
-                                                    <div key={p.id} className="relative group aspect-square">
-                                                        <img src={p.url} className="w-full h-full object-cover rounded-lg bg-slate-200" />
-                                                        <div className="absolute top-1 right-1 z-10">
-                                                            {p.status === 'APPROVED' && <div className="bg-green-500 text-white p-1 rounded-full shadow-sm"><Icons.Check className="w-3 h-3"/></div>}
-                                                            {p.status === 'REJECTED' && <div className="bg-red-500 text-white p-1 rounded-full shadow-sm"><Icons.X className="w-3 h-3"/></div>}
-                                                            {p.status === 'PENDING' && <div className="bg-amber-500 text-white p-1 rounded-full shadow-sm"><Icons.Clock className="w-3 h-3"/></div>}
-                                                        </div>
+                                                    <div key={p.id} className="group relative aspect-[4/3] rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                                        <img 
+                                                            src={p.url} 
+                                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer" 
+                                                            onClick={() => setViewPhoto(p.url)}
+                                                        />
                                                         
-                                                        {/* Admin Controls Overlay */}
-                                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg backdrop-blur-sm">
-                                                            <button onClick={() => handleUpdatePhotoStatus(v.id, p.id, 'APPROVED')} className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-transform hover:scale-110" title="Approve"><Icons.Check className="w-4 h-4"/></button>
-                                                            <button onClick={() => handleUpdatePhotoStatus(v.id, p.id, 'REJECTED')} className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-transform hover:scale-110" title="Reject"><Icons.X className="w-4 h-4"/></button>
+                                                        {/* STATUS INDICATORS */}
+                                                        <div className="absolute top-3 right-3 z-10">
+                                                            {p.status === 'APPROVED' && (
+                                                                <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg animate-bounce-in">
+                                                                    <Icons.Check className="w-5 h-5 stroke-[3]" />
+                                                                </div>
+                                                            )}
+                                                            {p.status === 'REJECTED' && (
+                                                                <div className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg">
+                                                                    <Icons.X className="w-5 h-5 stroke-[3]" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* ACTION OVERLAY (Only shows buttons based on status) */}
+                                                        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex justify-center gap-3 transition-opacity duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100">
+                                                            {p.status !== 'APPROVED' && (
+                                                                <button 
+                                                                    onClick={() => handleUpdatePhotoStatus(v.id, p.id, 'APPROVED')} 
+                                                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-xl text-xs font-bold shadow-lg transform active:scale-95 transition-all"
+                                                                >
+                                                                    Approve
+                                                                </button>
+                                                            )}
+                                                            
+                                                            {/* Reject is always available to allow corrections */}
+                                                            <button 
+                                                                onClick={() => handleUpdatePhotoStatus(v.id, p.id, 'REJECTED')} 
+                                                                className={`flex-1 ${p.status === 'APPROVED' ? 'w-full bg-white/20 hover:bg-red-500 text-white backdrop-blur-md' : 'bg-red-500 hover:bg-red-600 text-white'} py-2 rounded-xl text-xs font-bold shadow-lg transform active:scale-95 transition-all`}
+                                                            >
+                                                                {p.status === 'APPROVED' ? 'Revoke' : 'Reject'}
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 ))}
-                                                {(!v.photos || v.photos.length === 0) && <p className="text-xs text-slate-400 italic col-span-full">No photos uploaded</p>}
+                                                {(!v.photos || v.photos.length === 0) && (
+                                                    <div className="col-span-full py-8 text-center text-slate-400 text-sm italic border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
+                                                        No photos uploaded
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-                            ) : <p className="text-sm text-slate-500">No vehicles added.</p>}
+                            ) : (
+                                <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                    <p className="text-slate-500 font-medium">No vehicles registered yet.</p>
+                                </div>
+                            )}
+                        </div>
+
+                         {/* DOCUMENTS SECTION */}
+                         <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                             <div className="flex items-center gap-2 mb-2">
+                                <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600">
+                                    <Icons.FileText className="w-4 h-4" />
+                                </div>
+                                <h4 className="font-bold text-lg dark:text-white">Official Documents</h4>
+                             </div>
+
+                             <div className="grid grid-cols-1 gap-4">
+                                 {user.documents && user.documents.length > 0 ? user.documents.map((doc: any) => (
+                                     <div key={doc.id} className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:shadow-md">
+                                         <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 shrink-0">
+                                             <Icons.File className="w-6 h-6" />
+                                         </div>
+                                         
+                                         <div className="flex-1 text-center sm:text-left">
+                                             <p className="font-bold text-sm text-slate-900 dark:text-white mb-1">
+                                                 {DOC_LABELS[doc.type] || doc.type}
+                                             </p>
+                                             <div className="flex items-center justify-center sm:justify-start gap-2">
+                                                 <StatusBadge status={doc.status} className="text-[10px] px-2 py-0.5" />
+                                                 <span className="text-[10px] text-slate-400">{new Date(doc.uploadedAt).toLocaleDateString()}</span>
+                                             </div>
+                                         </div>
+
+                                         <div className="flex items-center gap-2 w-full sm:w-auto">
+                                             <a href={doc.url} target="_blank" rel="noreferrer" className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                                 <Icons.Eye className="w-5 h-5" />
+                                             </a>
+                                             
+                                             {doc.status !== 'APPROVED' ? (
+                                                 <div className="flex gap-2 flex-1 sm:flex-none">
+                                                     <button onClick={() => handleUpdateDocumentStatus(doc.id, 'APPROVED')} className="flex-1 sm:flex-none bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all active:scale-95">Approve</button>
+                                                     <button onClick={() => handleUpdateDocumentStatus(doc.id, 'REJECTED')} className="flex-1 sm:flex-none bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 px-4 py-2 rounded-lg text-xs font-bold transition-all active:scale-95">Reject</button>
+                                                 </div>
+                                             ) : (
+                                                 <button onClick={() => handleUpdateDocumentStatus(doc.id, 'REJECTED')} className="text-red-500 hover:text-red-600 text-xs font-bold px-3 hover:underline">Revoke</button>
+                                             )}
+                                         </div>
+                                     </div>
+                                 )) : (
+                                     <p className="text-slate-500 text-sm italic p-4 text-center">No documents uploaded.</p>
+                                 )}
+                             </div>
+                        </div>
+
+                         {/* PAYMENT VERIFICATION */}
+                         <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600">
+                                    <Icons.CreditCard className="w-4 h-4" />
+                                </div>
+                                <h4 className="font-bold text-lg dark:text-white">Payment Details</h4>
+                            </div>
+                            
+                            <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                                <div className="relative z-10">
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">PayPal Account</p>
+                                    <p className="font-mono text-lg md:text-xl mb-6 truncate">{user.paypalEmail || 'Not Provided'}</p>
+                                    
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            {user.paymentVerificationStatus === 'APPROVED' ? (
+                                                <span className="flex items-center gap-1.5 bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm">
+                                                    <Icons.Check className="w-3 h-3" /> VERIFIED
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center gap-1.5 bg-amber-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm animate-pulse">
+                                                    PENDING
+                                                </span>
+                                            )}
+                                        </div>
+                                        
+                                        <div className="flex gap-2">
+                                            {user.paymentVerificationStatus !== 'APPROVED' && (
+                                                <button onClick={() => handleUpdatePaymentStatus('APPROVED')} className="bg-white text-slate-900 px-4 py-2 rounded-lg text-xs font-black hover:bg-slate-100 transition-colors">
+                                                    Approve
+                                                </button>
+                                            )}
+                                            <button onClick={() => handleUpdatePaymentStatus('REJECTED')} className="text-white/60 hover:text-white text-xs font-bold px-2 transition-colors">
+                                                {user.paymentVerificationStatus === 'APPROVED' ? 'Revoke' : 'Reject'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </>
                     )}
+                 </div>
 
-                     <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-700">
-                         {user.role === UserRole.DRIVER && (
-                             <button onClick={() => onPayout(user.id, user.balance || 0)} className="bg-black text-white px-4 py-2 rounded-lg font-bold text-sm">Process Payout</button>
-                         )}
-                         <button onClick={() => backend.deleteUser(user.id).then(() => { onUpdate(); onClose(); })} className="text-red-600 font-bold text-sm px-4">Delete User</button>
-                     </div>
+                 {/* FOOTER ACTIONS */}
+                 <div className="p-4 md:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex flex-col sm:flex-row justify-end gap-3">
+                     {user.role === UserRole.DRIVER && (
+                         <button onClick={() => onPayout(user.id, user.balance || 0)} className="w-full sm:w-auto bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-xl font-bold text-sm shadow-lg shadow-slate-900/10 active:scale-95 transition-all">
+                             Process Payout
+                         </button>
+                     )}
+                     <button onClick={() => backend.deleteUser(user.id).then(() => { onUpdate(); onClose(); })} className="w-full sm:w-auto text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 px-6 py-3 rounded-xl font-bold text-sm transition-all active:scale-95">
+                         Delete Account
+                     </button>
                  </div>
              </div>
+
+             {/* LIGHTBOX FOR PHOTOS */}
+             {viewPhoto && (
+                 <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-fade-in" onClick={() => setViewPhoto(null)}>
+                     <img src={viewPhoto} className="max-w-full max-h-full rounded-lg shadow-2xl" />
+                     <button className="absolute top-4 right-4 text-white p-2 bg-white/10 rounded-full hover:bg-white/20">
+                         <Icons.X className="w-6 h-6" />
+                     </button>
+                 </div>
+             )}
         </div>
     );
 }
@@ -1294,7 +1373,6 @@ const SupportView = ({ settings, onUpdate, onBack }: { settings: SupportSettings
     );
 };
 
-// FIX: Export AdminDashboard component
 export const AdminDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [stats, setStats] = useState<any>(null);
@@ -2232,7 +2310,7 @@ export const AdminDashboard: React.FC = () => {
                             )}
                         </div>
                     )}
-                </main>
+                    </main>
             </div>
 
             {/* Modals */}
@@ -2251,7 +2329,8 @@ export const AdminDashboard: React.FC = () => {
                     cancelText="Cancel, Keep Data"
                     confirmPhrase="DELETE"
                     onConfirm={async () => {
-                        await mockBackend.cleanupDatabase();
+                        // FIX: Use backend instead of mockBackend
+                        await backend.cleanupDatabase();
                         setShowResetModal(false);
                         alert('Database has been cleaned successfully. The system is now ready for launch.');
                         window.location.reload();

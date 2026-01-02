@@ -148,7 +148,7 @@ function App() {
   // STRICT: Only 'admin.tripfers.com' is the Admin Portal
   // Localhost defaults to Client Portal for easier development
   // To test Admin on localhost, you can temporarily uncomment the localhost check or use a custom host
-  const isAdminDomain = hostname.startsWith('admin.'); 
+  const isAdminDomain = hostname.startsWith('admin.') || hostname.includes('localhost') || hostname.includes('127.0.0.1'); 
 
   console.log(`[App] Current Hostname: ${hostname} | Detected Mode: ${isAdminDomain ? 'ADMIN' : 'CLIENT'}`);
 

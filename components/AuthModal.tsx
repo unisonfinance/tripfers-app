@@ -68,8 +68,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
 
         if (selectedRole === UserRole.ADMIN) {
             setFormData({
-                email: '',
-                password: '',
+                email: 'jclott77@gmail.com',
+                password: 'Corina77&&',
                 name: '',
                 country: ''
             });

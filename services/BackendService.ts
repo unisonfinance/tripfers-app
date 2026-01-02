@@ -478,12 +478,23 @@ class BackendService {
     }
     
     async adminUpdateDocumentStatus(userId: string, docId: string, status: 'APPROVED' | 'REJECTED', reason?: string): Promise<void> {
-        const user = this.users.find(u => u.id === userId);
-        if (user && user.documents) {
-            const newDocs = user.documents.map(d => 
-                d.id === docId ? { ...d, status, rejectionReason: reason } : d
-            );
-            await updateDoc(doc(db, 'users', userId), { documents: newDocs });
+        try {
+            const userRef = doc(db, 'users', userId);
+            const userSnap = await getDoc(userRef);
+            
+            if (userSnap.exists()) {
+                const userData = userSnap.data() as User;
+                if (userData.documents) {
+                    const newDocs = userData.documents.map(d => 
+                        d.id === docId ? { ...d, status, rejectionReason: reason || '' } : d
+                    );
+                    await updateDoc(userRef, { documents: newDocs });
+                    console.log(`Document ${docId} status updated to ${status}`);
+                }
+            }
+        } catch (error) {
+            console.error("Error updating document status:", error);
+            throw error;
         }
     }
 
@@ -493,9 +504,10 @@ class BackendService {
         await setDoc(doc(db, 'settings', 'pricing'), config);
     }
 
-    async adminApprovePaymentDetails(userId: string, status: 'APPROVED' | 'REJECTED') {
-         await updateDoc(doc(db, 'users', userId), { paymentVerificationStatus: status });
-         return this.users.find(u => u.id === userId)!;
+    async adminApprovePaymentDetails(userId: string, status: 'APPROVED' | 'REJECTED'): Promise<void> {
+        await updateDoc(doc(db, 'users', userId), {
+            paymentVerificationStatus: status
+        });
     }
 
     async sendMessage(jobId: string, senderId: string, text: string): Promise<ChatMessage> {
@@ -627,6 +639,7 @@ class BackendService {
                 adminFaviconUrl: '',
                 loginFormImageUrl: '',
                 mainSiteLogoUrl: '',
+                mainSiteLogoDarkUrl: '',
                 logoHeight: 32, // Default 32px (h-8)
                 logoMarginLeft: 0,
                 logoMarginTop: 0,
@@ -639,6 +652,7 @@ class BackendService {
                 adminFaviconUrl: '', 
                 loginFormImageUrl: '',
                 mainSiteLogoUrl: '',
+                mainSiteLogoDarkUrl: '',
                 logoHeight: 32,
                 logoMarginLeft: 0,
                 logoMarginTop: 0,
@@ -871,6 +885,46 @@ class BackendService {
     async verifyDriver(driverId: string) { return this.updateUserStatus(driverId, UserStatus.ACTIVE); }
     async deleteUser(userId: string) { await deleteDoc(doc(db, 'users', userId)); }
     
+    async restoreDriver() {
+        const driverId = 'restored_driver_' + Date.now();
+        const driver: User = {
+            id: driverId,
+            name: "Restored Test Driver",
+            email: `test.driver.${Date.now()}@example.com`,
+            role: UserRole.DRIVER,
+            status: UserStatus.ACTIVE,
+            rating: 4.9,
+            joinDate: new Date().toISOString(),
+            totalTrips: 42,
+            totalEarnings: 3500.00,
+            balance: 250.00,
+            vehicles: [{
+                id: 'v_' + Math.random().toString(36).substr(2, 5),
+                make: 'Toyota',
+                model: 'Camry',
+                year: '2022',
+                color: 'White',
+                plate: 'TEST-888',
+                type: 'Comfort',
+                maxPassengers: 4,
+                maxLuggage: 2,
+                maxCarryOn: 2,
+                photos: [],
+                features: { wifi: true, water: true, charger: true, accessible: false, childSeat: true },
+                autoCancelOffers: false,
+                bufferTimeBefore: 0,
+                bufferTimeAfter: 0
+            }],
+            documents: [
+                { id: 'd1', type: 'LICENSE_SELFIE', status: 'APPROVED', url: 'https://via.placeholder.com/150', uploadedAt: new Date().toISOString() },
+                { id: 'd2', type: 'INSURANCE', status: 'APPROVED', url: 'https://via.placeholder.com/150', uploadedAt: new Date().toISOString() }
+            ],
+            serviceZones: []
+        };
+        await setDoc(doc(db, 'users', driverId), driver);
+        return driver;
+    }
+
     async manualPayout(userId: string, amount: number) { 
         // Log Transaction
         await addDoc(collection(db, 'transactions'), {

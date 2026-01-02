@@ -376,7 +376,8 @@ export interface BrandingSettings {
   mainFaviconUrl: string;
   adminFaviconUrl: string;
   loginFormImageUrl: string;
-  mainSiteLogoUrl?: string;
+  mainSiteLogoUrl?: string; // Main Site Logo BB URL (for Light Theme)
+  mainSiteLogoDarkUrl?: string; // Main Site Logo WB URL (for Dark Theme)
   logoHeight?: number; // Added for logo size control
   logoMarginLeft?: number;
   logoMarginTop?: number;

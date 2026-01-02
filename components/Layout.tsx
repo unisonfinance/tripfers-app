@@ -98,7 +98,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
              <div className="flex items-center gap-2">
                 {/* Logo Text - Wrapped in Link to redirect to Home */}
                 <Link to="/" className="flex items-center gap-2">
-                    {branding?.mainSiteLogoUrl ? (
+                    {(isDark && branding?.mainSiteLogoDarkUrl) ? (
+                         <img 
+                            src={branding.mainSiteLogoDarkUrl} 
+                            alt="Logo" 
+                            className="w-auto object-contain"
+                            style={{
+                                height: branding.logoHeight ? `${branding.logoHeight}px` : '32px',
+                                marginLeft: branding.logoMarginLeft ? `${branding.logoMarginLeft}px` : undefined,
+                                marginTop: branding.logoMarginTop ? `${branding.logoMarginTop}px` : undefined,
+                                marginBottom: branding.logoMarginBottom ? `${branding.logoMarginBottom}px` : undefined
+                            }}
+                        />
+                    ) : branding?.mainSiteLogoUrl ? (
                         <img 
                             src={branding.mainSiteLogoUrl} 
                             alt="Logo" 
@@ -173,9 +185,42 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
              <div className="relative" ref={accountRef}>
                 <button 
                     onClick={() => setShowAccountDropdown(!showAccountDropdown)}
-                    className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-200 transition-colors"
+                    className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
-                    <Icons.UserCircle className="w-7 h-7" />
+                    {user ? (
+                        user.role === UserRole.ADMIN ? (
+                            // ADMIN ICON
+                            branding?.adminFaviconUrl ? (
+                                <img 
+                                    src={branding.adminFaviconUrl} 
+                                    alt="Admin" 
+                                    className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-600 shadow-sm"
+                                />
+                            ) : (
+                                <div className="w-9 h-9 rounded-full bg-slate-900 dark:bg-white flex items-center justify-center text-white dark:text-slate-900 shadow-sm">
+                                    <Icons.Shield className="w-5 h-5" />
+                                </div>
+                            )
+                        ) : (
+                            // REGULAR USER AVATAR
+                            user.avatar ? (
+                                <img 
+                                    src={user.avatar} 
+                                    alt={user.name} 
+                                    className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-600 shadow-sm"
+                                />
+                            ) : (
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-red-600 to-rose-400 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                                    {user.name?.charAt(0).toUpperCase() || 'U'}
+                                </div>
+                            )
+                        )
+                    ) : (
+                        // GUEST ICON
+                        <div className="p-1">
+                             <Icons.UserCircle className="w-7 h-7 text-slate-600 dark:text-slate-200" />
+                        </div>
+                    )}
                 </button>
                 
                 {/* Dropdown Menu */}
