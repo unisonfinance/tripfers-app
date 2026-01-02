@@ -749,8 +749,11 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                 )}
             </div>
 
-            {/* 3. INPUTS */}
-            <div className="px-2 py-4 md:p-6 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 relative overflow-hidden">
+            {/* 3. INPUTS (Glassmorphism) */}
+            <div className="px-2 py-4 md:p-6 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 relative overflow-hidden">
+                 {/* Decorative background blur element */}
+                 <div className="absolute -top-20 -right-20 w-64 h-64 bg-red-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                 <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
                  
                  <div className="flex flex-col gap-2 relative z-10">
                      
