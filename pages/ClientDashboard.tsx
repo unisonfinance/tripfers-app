@@ -477,10 +477,92 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
   useEffect(() => {
     // Only initialize map if we have a valid DOM ref and currentView is 'book'
     if (currentView === 'book' && window.google && mapRef.current) {
+        // High-End Map Styling
+        const mapStyles = [
+            {
+                "featureType": "all",
+                "elementType": "labels.text.fill",
+                "stylers": [{"saturation": 36}, {"color": "#333333"}, {"lightness": 40}]
+            },
+            {
+                "featureType": "all",
+                "elementType": "labels.text.stroke",
+                "stylers": [{"visibility": "on"}, {"color": "#ffffff"}, {"lightness": 16}]
+            },
+            {
+                "featureType": "all",
+                "elementType": "labels.icon",
+                "stylers": [{"visibility": "off"}]
+            },
+            {
+                "featureType": "administrative",
+                "elementType": "geometry.fill",
+                "stylers": [{"color": "#fefefe"}, {"lightness": 20}]
+            },
+            {
+                "featureType": "administrative",
+                "elementType": "geometry.stroke",
+                "stylers": [{"color": "#fefefe"}, {"lightness": 17}, {"weight": 1.2}]
+            },
+            {
+                "featureType": "landscape",
+                "elementType": "geometry",
+                "stylers": [{"color": "#f5f5f5"}, {"lightness": 20}]
+            },
+            {
+                "featureType": "poi",
+                "elementType": "geometry",
+                "stylers": [{"color": "#f5f5f5"}, {"lightness": 21}]
+            },
+            {
+                "featureType": "poi.park",
+                "elementType": "geometry",
+                "stylers": [{"color": "#e5e5e5"}, {"lightness": 21}]
+            },
+            {
+                "featureType": "road.highway",
+                "elementType": "geometry.fill",
+                "stylers": [{"color": "#ffffff"}, {"lightness": 17}]
+            },
+            {
+                "featureType": "road.highway",
+                "elementType": "geometry.stroke",
+                "stylers": [{"color": "#ffffff"}, {"lightness": 29}, {"weight": 0.2}]
+            },
+            {
+                "featureType": "road.arterial",
+                "elementType": "geometry",
+                "stylers": [{"color": "#ffffff"}, {"lightness": 18}]
+            },
+            {
+                "featureType": "road.local",
+                "elementType": "geometry",
+                "stylers": [{"color": "#ffffff"}, {"lightness": 16}]
+            },
+            {
+                "featureType": "transit",
+                "elementType": "geometry",
+                "stylers": [{"color": "#f2f2f2"}, {"lightness": 19}]
+            },
+            {
+                "featureType": "water",
+                "elementType": "geometry",
+                "stylers": [{"color": "#e9e9e9"}, {"lightness": 17}]
+            }
+        ];
+
         const map = new window.google.maps.Map(mapRef.current, {
             center: userLocation || { lat: -33.8688, lng: 151.2093 }, // Default Sydney
             zoom: 13,
             disableDefaultUI: true,
+            styles: mapStyles, // Apply custom styles
+            gestureHandling: 'greedy', // Better mobile touch handling
+            zoomControl: false, // Clean UI
+            mapTypeControl: false,
+            scaleControl: false,
+            streetViewControl: false,
+            rotateControl: false,
+            fullscreenControl: false
         });
         
         // Use coordinates if available for route calculation to avoid "NOT_FOUND" errors
@@ -494,7 +576,15 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
         if (hasValidPickup && hasValidDropoff) {
             setIsCalculatingRoute(true);
             const directionsService = new window.google.maps.DirectionsService();
-            const directionsRenderer = new window.google.maps.DirectionsRenderer({ map, suppressMarkers: false });
+            const directionsRenderer = new window.google.maps.DirectionsRenderer({ 
+                map, 
+                suppressMarkers: true, // We will use custom markers
+                polylineOptions: {
+                    strokeColor: '#16a34a', // Green-600
+                    strokeWeight: 5,
+                    strokeOpacity: 0.8
+                }
+            });
             
             const waypoints = formData.stops
                 .filter(s => s.address)
@@ -528,6 +618,36 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                     const hours = Math.floor(dur / 3600);
                     const mins = Math.floor((dur % 3600) / 60);
                     setCalculatedDuration(`${hours}h ${mins}m`);
+
+                    // Custom Markers
+                    const leg = result.routes[0].legs[0];
+                    new window.google.maps.Marker({
+                        position: leg.start_location,
+                        map: map,
+                        icon: {
+                            path: window.google.maps.SymbolPath.CIRCLE,
+                            scale: 8,
+                            fillColor: "#16a34a",
+                            fillOpacity: 1,
+                            strokeWeight: 3,
+                            strokeColor: "#ffffff",
+                        }
+                    });
+
+                    if (bookingType !== 'HOURLY') {
+                         new window.google.maps.Marker({
+                            position: result.routes[0].legs[result.routes[0].legs.length - 1].end_location,
+                            map: map,
+                            icon: {
+                                path: window.google.maps.SymbolPath.CIRCLE,
+                                scale: 8,
+                                fillColor: "#dc2626", // Red
+                                fillOpacity: 1,
+                                strokeWeight: 3,
+                                strokeColor: "#ffffff",
+                            }
+                        });
+                    }
                 } else {
                     console.debug("Route calculation failed:", status);
                     setRouteError(null); // Clear error if recalculation is just invalid
