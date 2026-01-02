@@ -688,6 +688,26 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
       setCurrentView('book');
   };
 
+  const handleRebook = (job: Job) => {
+    setFormData(prev => ({
+        ...prev,
+        pickup: job.pickup,
+        dropoff: job.dropoff || '',
+        pickupCoords: job.pickupCoordinates || null,
+        dropoffCoords: job.dropoffCoordinates || null,
+        vehicleType: job.vehicleType || 'Economy',
+        passengers: job.passengers,
+        luggage: job.luggage,
+        carryOn: job.carryOn || 0,
+        // Default to today/now
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toTimeString().slice(0,5),
+    }));
+    setBookingType(job.bookingType || 'DISTANCE');
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const confirmCancelJob = async () => {
       if (jobToCancel) {
           await backend.cancelJob(jobToCancel.id);
@@ -760,6 +780,18 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
         );
     };
 
+    // --- RECENT ROUTES ---
+    const recentRoutes = jobs
+      .filter(j => j.status === JobStatus.COMPLETED && j.pickup && j.dropoff)
+      .reduce((acc, curr) => {
+          const key = `${curr.pickup}-${curr.dropoff}`;
+          if (!acc.find(i => `${i.pickup}-${i.dropoff}` === key)) {
+              acc.push(curr);
+          }
+          return acc;
+      }, [] as Job[])
+      .slice(0, 5);
+
   return (
     <div className={`relative min-h-screen pb-20 bg-slate-50 dark:bg-slate-900 ${currentView === 'book' ? '' : 'p-4 md:p-8'}`}>
       <style>{`
@@ -795,6 +827,34 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                     <Icons.Truck className="w-4 h-4" /> {t('tab_express')}
                 </button>
             </div>
+
+            {/* 2.5 RECENT ROUTES (ONE-TAP) */}
+            {recentRoutes.length > 0 && (
+                <div className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 py-3 px-4">
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                        <Icons.History className="w-3 h-3" /> Recent Trips
+                     </p>
+                     <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+                        {recentRoutes.map(job => (
+                            <button
+                                key={job.id}
+                                onClick={() => handleRebook(job)}
+                                className="flex-shrink-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg p-2.5 pr-4 flex items-center gap-3 shadow-sm hover:shadow-md hover:border-red-300 dark:hover:border-red-900 transition-all group min-w-[200px] max-w-[260px]"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400 group-hover:text-red-600 transition-colors">
+                                    <Icons.RotateCw className="w-4 h-4" />
+                                </div>
+                                <div className="text-left overflow-hidden">
+                                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate w-full">{job.pickup.split(',')[0]}</p>
+                                    <p className="text-[10px] text-slate-500 truncate w-full flex items-center gap-1">
+                                        <span className="text-slate-300">to</span> {job.dropoff?.split(',')[0]}
+                                    </p>
+                                </div>
+                            </button>
+                        ))}
+                     </div>
+                </div>
+            )}
 
             {/* 2. MAP */}
             <div className="relative w-full h-48 md:h-64 bg-slate-100 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
