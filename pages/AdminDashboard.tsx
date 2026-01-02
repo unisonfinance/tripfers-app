@@ -740,6 +740,24 @@ const UserDetailsModal = ({ user, onClose, onUpdate, onPayout }: any) => {
     if (!user) return null;
 
     const [viewPhoto, setViewPhoto] = useState<string | null>(null);
+    const [selectedStatus, setSelectedStatus] = useState<UserStatus>(user.status);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    useEffect(() => {
+        setSelectedStatus(user.status);
+    }, [user.status]);
+
+    const handleSaveStatus = async () => {
+        await backend.updateUserStatus(user.id, selectedStatus);
+        onUpdate();
+    };
+
+    const handleDeleteUser = async () => {
+        await backend.deleteUser(user.id);
+        setShowDeleteConfirm(false);
+        onClose();
+        onUpdate();
+    };
 
     const handleUpdatePhotoStatus = async (vehicleId: string, photoId: string, newStatus: 'APPROVED' | 'REJECTED') => {
          const updatedVehicles = user.vehicles?.map((v: VehicleSettings) => {
@@ -797,9 +815,14 @@ const UserDetailsModal = ({ user, onClose, onUpdate, onPayout }: any) => {
                              </div>
                          </div>
                      </div>
-                     <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                        <Icons.X className="w-6 h-6 dark:text-white"/>
-                     </button>
+                     <div className="flex items-center gap-2">
+                        <button onClick={handleSaveStatus} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg shadow-green-600/20 transition-all active:scale-95">
+                            Save Changes
+                        </button>
+                        <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            <Icons.X className="w-6 h-6 dark:text-white"/>
+                        </button>
+                     </div>
                  </div>
                  
                  {/* SCROLLABLE CONTENT */}
@@ -814,7 +837,17 @@ const UserDetailsModal = ({ user, onClose, onUpdate, onPayout }: any) => {
                          <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Account Status</p>
                              <div className="flex items-center gap-2">
-                                <StatusBadge status={user.status} className="text-sm px-3 py-1" />
+                                <select 
+                                    value={selectedStatus} 
+                                    onChange={(e) => setSelectedStatus(e.target.value as UserStatus)}
+                                    className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-1 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value={UserStatus.PENDING_VERIFICATION}>Pending Verification</option>
+                                    <option value={UserStatus.PROCESSING}>Under Verification</option>
+                                    <option value={UserStatus.ACTIVE}>Verified (Active)</option>
+                                    <option value={UserStatus.SUSPENDED}>Suspended</option>
+                                    <option value={UserStatus.REJECTED}>Rejected</option>
+                                </select>
                              </div>
                          </div>
                      </div>
@@ -992,21 +1025,44 @@ const UserDetailsModal = ({ user, onClose, onUpdate, onPayout }: any) => {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                         {/* ACCOUNT ACTIONS (DELETE) */}
+                         <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                             <h4 className="font-bold text-lg dark:text-white text-red-600 flex items-center gap-2">
+                                 <Icons.Trash className="w-5 h-5" /> Danger Zone
+                             </h4>
+                             <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-2xl border border-red-100 dark:border-red-900/50">
+                                 <p className="text-sm text-red-800 dark:text-red-200 mb-4 font-medium">
+                                     Deleting this account will permanently remove all data, including documents, vehicles, and history. This action cannot be undone.
+                                 </p>
+                                 {!showDeleteConfirm ? (
+                                     <div className="flex gap-2">
+                                         <button onClick={() => onPayout && onPayout(user.id)} className="bg-white text-slate-900 px-6 py-3 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-colors border border-slate-200">
+                                             Process Payout
+                                         </button>
+                                         <button onClick={() => setShowDeleteConfirm(true)} className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg shadow-red-600/20 transition-all active:scale-95">
+                                             Delete Account
+                                         </button>
+                                         <button onClick={handleSaveStatus} className="flex-1 bg-black hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition-all active:scale-95">
+                                             Save Changes
+                                         </button>
+                                     </div>
+                                 ) : (
+                                     <div className="animate-fade-in">
+                                         <p className="text-red-600 font-bold mb-3">⚠️ Are you absolutely sure?</p>
+                                         <div className="flex gap-2">
+                                             <button onClick={handleDeleteUser} className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:bg-red-700 transition-colors">
+                                                 Yes, Delete Forever
+                                             </button>
+                                             <button onClick={() => setShowDeleteConfirm(false)} className="bg-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold text-sm hover:bg-slate-300 transition-colors">
+                                                 Cancel
+                                             </button>
+                                         </div>
+                                     </div>
+                                 )}
+                             </div>
+                         </div>
                     </>
                     )}
-                 </div>
-
-                 {/* FOOTER ACTIONS */}
-                 <div className="p-4 md:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex flex-col sm:flex-row justify-end gap-3">
-                     {user.role === UserRole.DRIVER && (
-                         <button onClick={() => onPayout(user.id, user.balance || 0)} className="w-full sm:w-auto bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-xl font-bold text-sm shadow-lg shadow-slate-900/10 active:scale-95 transition-all">
-                             Process Payout
-                         </button>
-                     )}
-                     <button onClick={() => backend.deleteUser(user.id).then(() => { onUpdate(); onClose(); })} className="w-full sm:w-auto text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 px-6 py-3 rounded-xl font-bold text-sm transition-all active:scale-95">
-                         Delete Account
-                     </button>
                  </div>
              </div>
 

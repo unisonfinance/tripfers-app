@@ -1075,7 +1075,7 @@ const CreateVehicleView = ({ onBack, onSaveAndContinue, currentUser }: any) => {
                 return {
                     id: Math.random().toString(36).substr(2, 9),
                     url: url,
-                    status: 'APPROVED',
+                    status: 'PENDING',
                     isDefault: false
                 };
             }));
