@@ -902,88 +902,100 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                 </div>
             )}
 
-            {/* 4. CAR SELECTION - UPDATED WITH DYNAMIC PRICING */}
-            <div className="p-4 md:p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
-                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 px-1">{t('select_vehicle')}</h3>
-                {/* 
-                   UPDATED GRID LAYOUT:
-                   2 col mobile (default), 3 col lg 
-                   Tighter gap, better spacing
-                */}
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 pb-2 px-1 md:px-0">
-                    {CAR_CATEGORIES.map((car, index) => {
-                        const isSelected = formData.vehicleType === car.name;
-                        const isOtherSelected = formData.vehicleType && !isSelected;
-                        
-                        // Pricing Calculation
-                        const price = calculatedDistance ? getPrice(calculatedDistance, car.name) : null;
+            {/* 4. CAR SELECTION - PREMIUM CAROUSEL */}
+            <div className="py-6 bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-700">
+                <div className="px-4 md:px-6 mb-4 flex justify-between items-center">
+                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{t('select_vehicle')}</h3>
+                    <div className="hidden md:flex gap-1 text-xs font-bold text-slate-400">
+                        <span>SCROLL TO VIEW ALL</span>
+                        <Icons.ArrowRight className="w-4 h-4" />
+                    </div>
+                </div>
 
-                        return (
-                            <button
-                                key={car.id}
-                                type="button"
-                                onClick={() => setFormData(prev => ({...prev, vehicleType: car.name}))}
-                                className={`
-                                    relative w-full rounded-xl border transition-all duration-300 ease-out cursor-pointer overflow-hidden group text-left
-                                    animate-slide-up-fade flex flex-col
-                                    ${isSelected 
-                                        ? 'border-red-600 bg-white dark:bg-slate-800 shadow-[0_0_15px_rgba(220,38,38,0.15)] ring-1 ring-red-600 z-10' 
-                                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-red-300 hover:shadow-md hover:-translate-y-0.5'
-                                    }
-                                    ${isOtherSelected ? 'opacity-70 hover:opacity-100' : 'opacity-100'}
-                                    active:scale-[0.98]
-                                `}
-                                style={{ animationDelay: `${index * 50}ms` }}
-                            >
-                                {/* Selected Badge */}
-                                {isSelected && (
-                                    <div className="absolute top-0 right-0 bg-red-600 text-white w-6 h-6 flex items-center justify-center rounded-bl-xl z-20 shadow-sm">
+                <div className="relative group w-full">
+                    {/* Gradient Masks for scroll indication */}
+                    <div className="absolute left-0 top-0 bottom-0 w-4 md:w-12 bg-gradient-to-r from-slate-50 dark:from-slate-900 to-transparent z-10 pointer-events-none"></div>
+                    <div className="absolute right-0 top-0 bottom-0 w-4 md:w-12 bg-gradient-to-l from-slate-50 dark:from-slate-900 to-transparent z-10 pointer-events-none"></div>
+
+                    <div className="flex overflow-x-auto gap-4 px-4 md:px-6 pb-8 pt-2 snap-x snap-mandatory no-scrollbar w-full">
+                        {CAR_CATEGORIES.map((car, index) => {
+                            const isSelected = formData.vehicleType === car.name;
+                            const price = calculatedDistance ? getPrice(calculatedDistance, car.name) : null;
+                            
+                            return (
+                                <button
+                                    key={car.id}
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({...prev, vehicleType: car.name}))}
+                                    className={`
+                                        flex-shrink-0 relative w-[260px] md:w-[300px] snap-center
+                                        rounded-2xl border-2 transition-all duration-300 ease-out overflow-hidden
+                                        flex flex-col text-left group/card
+                                        ${isSelected 
+                                            ? 'border-red-600 bg-white dark:bg-slate-800 shadow-[0_10px_40px_-10px_rgba(220,38,38,0.2)] scale-100 z-10 ring-1 ring-red-600/20' 
+                                            : 'border-transparent bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 shadow-sm scale-[0.98] opacity-60 hover:opacity-100 hover:scale-[0.99] grayscale-[0.5] hover:grayscale-0'
+                                        }
+                                    `}
+                                >
+                                    {/* Selection Indicator */}
+                                    <div className={`absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center transition-all ${isSelected ? 'bg-red-600 text-white scale-100' : 'bg-slate-100 dark:bg-slate-700 text-transparent scale-0 group-hover/card:scale-100'}`}>
                                         <Icons.Check className="w-3.5 h-3.5" />
                                     </div>
-                                )}
 
-                                {/* Card Header: Title & Price */}
-                                <div className="p-2 md:p-4 pb-1 md:pb-2 flex justify-between items-start w-full">
-                                     <h4 className={`text-xs md:text-sm font-extrabold uppercase tracking-tight ${isSelected ? 'text-red-600' : 'text-slate-800 dark:text-slate-200'} truncate mr-1`}>
-                                        {t('vehicle_' + car.name.toLowerCase())}
-                                     </h4>
-                                     <div className="text-right leading-none shrink-0">
-                                         {price ? (
-                                             <>
-                                                 <span className="block text-[8px] md:text-[10px] text-slate-400 font-semibold mb-0.5">FROM</span>
-                                                 <span className={`block text-sm md:text-lg font-bold ${isSelected ? 'text-red-600' : 'text-slate-900 dark:text-white'}`}>
-                                                    US${price}
-                                                 </span>
-                                             </>
-                                         ) : (
-                                            <span className="block text-xs font-bold text-slate-400 mt-2">US$ --</span>
-                                         )}
-                                     </div>
-                                </div>
-
-                                {/* Icon - Centered & Clear */}
-                                <div className="flex-1 flex items-center justify-center py-1 md:py-2">
-                                     <car.icon className={`h-8 md:h-10 w-auto object-contain transition-transform duration-300 ${isSelected ? 'text-red-600 scale-105' : 'text-slate-700 dark:text-slate-300 group-hover:scale-105 group-hover:text-slate-900 dark:group-hover:text-white'}`} />
-                                </div>
-
-                                {/* Specs Bar - Bottom */}
-                                <div className="mt-1 md:mt-2 w-full px-2 pb-2 md:px-4 md:pb-4">
-                                    <div className={`
-                                        flex items-center justify-center gap-2 md:gap-4 py-1.5 md:py-2 rounded-lg text-[10px] md:text-xs font-bold transition-colors
-                                        ${isSelected ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300' : 'bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 group-hover:bg-slate-100 dark:group-hover:bg-slate-700'}
-                                    `}>
-                                        <span className="flex items-center gap-1.5">
-                                            <Icons.User className="w-3 h-3 md:w-3.5 md:h-3.5"/> {car.pax}
-                                        </span>
-                                        <span className="w-px h-3 bg-current opacity-20"></span>
-                                        <span className="flex items-center gap-1.5">
-                                            <Icons.ListFilter className="w-3 h-3 md:w-3.5 md:h-3.5"/> {car.bag}
-                                        </span>
+                                    {/* Car Image Area */}
+                                    <div className={`h-32 md:h-40 w-full flex items-center justify-center p-4 relative transition-all ${isSelected ? 'bg-gradient-to-b from-red-50/50 to-transparent dark:from-red-900/10' : ''}`}>
+                                        <car.icon className={`w-full h-full object-contain transition-transform duration-500 ${isSelected ? 'scale-110 drop-shadow-xl' : 'scale-100 group-hover/card:scale-105'}`} />
                                     </div>
-                                </div>
-                            </button>
-                        );
-                    })}
+
+                                    {/* Content Area */}
+                                    <div className="p-5 pt-2">
+                                        <div className="flex justify-between items-end mb-3">
+                                            <div>
+                                                <h4 className={`text-lg font-black uppercase tracking-tight ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                    {t('vehicle_' + car.name.toLowerCase())}
+                                                </h4>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                    {car.name === 'Economy' ? 'Best Value' : car.name === 'VIP' ? 'Luxury' : 'Standard'}
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                {price ? (
+                                                    <>
+                                                        <span className="block text-[10px] text-slate-400 font-bold mb-0.5">EST.</span>
+                                                        <span className={`block text-xl font-black ${isSelected ? 'text-red-600' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                            ${price}
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-xs font-bold text-slate-300">---</span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Features */}
+                                        <div className={`
+                                            flex items-center gap-3 py-3 px-4 rounded-xl text-xs font-bold transition-colors
+                                            ${isSelected ? 'bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-200' : 'bg-slate-50 dark:bg-slate-800 text-slate-400'}
+                                        `}>
+                                            <span className="flex items-center gap-2">
+                                                <Icons.User className="w-3.5 h-3.5"/> {car.pax}
+                                            </span>
+                                            <span className="w-px h-3 bg-current opacity-20"></span>
+                                            <span className="flex items-center gap-2">
+                                                <Icons.Briefcase className="w-3.5 h-3.5"/> {car.bag}
+                                            </span>
+                                            <span className="w-px h-3 bg-current opacity-20"></span>
+                                            <span className="flex-1 text-right uppercase text-[10px] tracking-wider opacity-70">
+                                                {car.name} Class
+                                            </span>
+                                        </div>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                        {/* Spacer for right padding */}
+                        <div className="w-2 flex-shrink-0"></div>
+                    </div>
                 </div>
             </div>
 
