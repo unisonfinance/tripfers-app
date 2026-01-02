@@ -198,6 +198,36 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
   const [step, setStep] = useState(1);
   const [mapHeight, setMapHeight] = useState('h-[35vh]'); // Mobile map height
 
+  const [focusedCategory, setFocusedCategory] = useState('Economy');
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const id = entry.target.getAttribute('data-id');
+            if (id) setFocusedCategory(id);
+          }
+        });
+      },
+      {
+        root: scrollRef.current,
+        threshold: 0.7, // High threshold to ensure it's the main one visible
+        rootMargin: '0px -20% 0px -20%' // Narrow the detection area to the center
+      }
+    );
+
+    const container = scrollRef.current;
+    if (container) {
+        Array.from(container.children).forEach((child) => {
+            if (child.tagName === 'BUTTON') observer.observe(child);
+        });
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   // --- NAVIGATION STATE ---
   const [currentView, setCurrentView] = useState<'book' | 'rides' | 'support' | 'settings'>('book');
   
@@ -917,23 +947,26 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                     <div className="absolute left-0 top-0 bottom-0 w-4 md:w-12 bg-gradient-to-r from-slate-50 dark:from-slate-900 to-transparent z-10 pointer-events-none"></div>
                     <div className="absolute right-0 top-0 bottom-0 w-4 md:w-12 bg-gradient-to-l from-slate-50 dark:from-slate-900 to-transparent z-10 pointer-events-none"></div>
 
-                    <div className="flex overflow-x-auto gap-4 px-4 md:px-6 pb-8 pt-2 snap-x snap-mandatory no-scrollbar w-full">
+                    <div ref={scrollRef} className="flex overflow-x-auto gap-4 px-4 md:px-6 pb-8 pt-2 snap-x snap-mandatory no-scrollbar w-full">
                         {CAR_CATEGORIES.map((car, index) => {
                             const isSelected = formData.vehicleType === car.name;
+                            const isFocused = focusedCategory === car.name;
                             const price = calculatedDistance ? getPrice(calculatedDistance, car.name) : null;
                             
                             return (
                                 <button
                                     key={car.id}
+                                    data-id={car.name}
                                     type="button"
                                     onClick={() => setFormData(prev => ({...prev, vehicleType: car.name}))}
                                     className={`
                                         flex-shrink-0 relative w-[260px] md:w-[300px] snap-center
                                         rounded-2xl border-2 transition-all duration-300 ease-out overflow-hidden
                                         flex flex-col text-left group/card
-                                        ${isSelected 
-                                            ? 'border-green-700 bg-white dark:bg-slate-800 shadow-[0_15px_40px_-10px_rgba(21,128,61,0.2)] scale-100 z-10 ring-1 ring-green-700' 
-                                            : 'border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm scale-[0.95] opacity-80 hover:opacity-100 hover:scale-[0.98] hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600 grayscale-[0.3] hover:grayscale-0'
+                                        ${isSelected ? 'border-green-700 ring-1 ring-green-700' : 'border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'}
+                                        ${isFocused 
+                                            ? 'bg-white dark:bg-slate-800 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.15)] scale-100 z-10 opacity-100 grayscale-0' 
+                                            : 'bg-white dark:bg-slate-800 shadow-sm scale-[0.95] opacity-60 grayscale-[0.8] hover:opacity-100 hover:scale-[0.98] hover:grayscale-0'
                                         }
                                     `}
                                 >
@@ -943,8 +976,8 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                                     </div>
 
                                     {/* Car Image Area */}
-                                    <div className={`h-32 md:h-40 w-full flex items-center justify-center p-4 relative transition-all duration-500 ${isSelected ? 'bg-gradient-to-b from-green-50/50 to-transparent dark:from-green-900/10' : 'group-hover/card:bg-slate-50 dark:group-hover/card:bg-slate-700/30'}`}>
-                                        <car.icon className={`w-full h-full object-contain transition-transform duration-500 ${isSelected ? 'scale-125 drop-shadow-2xl' : 'scale-100 group-hover/card:scale-110'}`} />
+                                    <div className={`h-32 md:h-40 w-full flex items-center justify-center p-4 relative transition-all duration-500 ${isFocused ? 'bg-gradient-to-b from-slate-50 to-transparent dark:from-slate-700/30' : ''}`}>
+                                        <car.icon className={`w-full h-full object-contain transition-transform duration-500 ${isFocused ? 'scale-110 drop-shadow-2xl' : 'scale-90 opacity-80'}`} />
                                     </div>
 
                                     {/* Content Area */}
