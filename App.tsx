@@ -13,6 +13,14 @@ import './i18n'; // Initialize i18n
 // Force refresh check
 
 
+// Helper for external redirects
+const NavigateExternal = ({ to }: { to: string }) => {
+    useEffect(() => {
+        window.location.href = to;
+    }, [to]);
+    return null;
+};
+
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isDark, setIsDark] = useState(false);
@@ -146,11 +154,11 @@ function App() {
   const hostname = window.location.hostname;
   
   // STRICT: Only 'admin.tripfers.com' is the Admin Portal
-  // Localhost defaults to Client Portal for easier development
-  // To test Admin on localhost, you can temporarily uncomment the localhost check or use a custom host
-  const isAdminDomain = hostname.startsWith('admin.') || hostname.includes('localhost') || hostname.includes('127.0.0.1'); 
+  // Localhost is treated as MAIN domain to allow testing all roles
+  const isAdminDomain = hostname.startsWith('admin.'); 
+  const isLocalhost = hostname.includes('localhost') || hostname.includes('127.0.0.1');
 
-  console.log(`[App] Current Hostname: ${hostname} | Detected Mode: ${isAdminDomain ? 'ADMIN' : 'CLIENT'}`);
+  console.log(`[App] Current Hostname: ${hostname} | Detected Mode: ${isAdminDomain ? 'ADMIN' : 'CLIENT'} | Localhost: ${isLocalhost}`);
 
   // Dynamic Favicon Switcher
   useEffect(() => {
@@ -277,11 +285,20 @@ function App() {
                   </Layout>
               } />
 
-              {/* Redirect /admin to subdomain if accessed from main site */}
-              <Route path="/admin" element={() => {
-                  window.location.href = 'https://admin.tripfers.com';
-                  return null;
-              }} />
+              {/* Redirect /admin to subdomain if accessed from main site, unless localhost */}
+              <Route path="/admin" element={
+                  isLocalhost ? (
+                      user?.role === UserRole.ADMIN ? (
+                        <AdminDashboard />
+                      ) : (
+                        <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>
+                          <ClientDashboard user={null} onLogin={handleLogin} initialRole={UserRole.ADMIN} />
+                        </Layout>
+                      )
+                  ) : (
+                      <NavigateExternal to="https://admin.tripfers.com" />
+                  )
+              } />
 
               <Route path="/membership-success" element={
                   <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>

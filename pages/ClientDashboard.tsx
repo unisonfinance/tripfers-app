@@ -366,33 +366,38 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
   }, [pendingBooking]);
 
   useEffect(() => {
-    if (user) {
-        const loadJobs = async () => {
+    // Consolidated data fetching
+    const refreshData = async () => {
+        if (user) {
             const data = await backend.getJobs(user.role, user.id);
             setJobs(data);
-        };
+        }
+        // Always refresh pricing to ensure dynamic updates from Admin Panel
+        const config = await backend.getPricingConfig();
+        setPricingConfig(config);
+    };
 
-        // Initial Load
-        loadJobs();
-        
-        // REAL-TIME SUBSCRIPTION: Instant updates for bids
-        const unsubscribe = backend.subscribe(loadJobs);
-        
-        // Keep polling as backup
-        const interval = setInterval(loadJobs, 5000);
-        
-        return () => {
-            unsubscribe();
-            clearInterval(interval);
-        };
-    }
+    // Initial Load
+    refreshData();
+    
+    // REAL-TIME SUBSCRIPTION
+    const unsubscribe = backend.subscribe(refreshData);
+    
+    // Polling backup
+    const interval = setInterval(refreshData, 5000);
+    
+    return () => {
+        unsubscribe();
+        clearInterval(interval);
+    };
   }, [user]);
 
+  // Removed duplicate loadJobs definition to avoid confusion
   const loadJobs = async () => {
-    if (user) {
-        const data = await backend.getJobs(user.role, user.id);
-        setJobs(data);
-    }
+      if (user) {
+          const data = await backend.getJobs(user.role, user.id);
+          setJobs(data);
+      }
   };
   
   // Fetch detailed driver info when a job has bids

@@ -814,7 +814,57 @@ class BackendService {
     // async initiateStripeCheckout(uid: string) { return ''; } // Removed duplicate
     async confirmMembership(uid: string, sess: string) { return {success: true}; }
     async getDriverPublicProfile(id: string) { return this.users.find(u => u.id === id); }
-    calculatePrice(dist: number, type: string) { return 100; } // Fallback
+    calculatePrice(dist: number, type: string) {
+        if (!this.pricing) return 0;
+
+        let price = this.pricing.baseFare || 0;
+        let remainingDist = dist;
+
+        // Tier 1: 0-10km
+        if (remainingDist > 0) {
+            const tier1Dist = Math.min(remainingDist, 10);
+            price += tier1Dist * (this.pricing.tier1Rate || 0);
+            remainingDist -= tier1Dist;
+        }
+
+        // Tier 2: 10-100km
+        if (remainingDist > 0) {
+            const tier2Dist = Math.min(remainingDist, 90); // 100 - 10
+            price += tier2Dist * (this.pricing.tier2Rate || 0);
+            remainingDist -= tier2Dist;
+        }
+
+        // Tier 3: 100-250km
+        if (remainingDist > 0) {
+            const tier3Dist = Math.min(remainingDist, 150); // 250 - 100
+            price += tier3Dist * (this.pricing.tier3Rate || 0);
+            remainingDist -= tier3Dist;
+        }
+
+        // Tier 4: 250km+
+        if (remainingDist > 0) {
+            price += remainingDist * (this.pricing.tier4Rate || 0);
+        }
+
+        // Apply Vehicle Multiplier
+        const multiplier = this.pricing.multipliers?.[type] || 1.0;
+        price *= multiplier;
+
+        // Apply Peak Pricing (Global Toggle)
+        if (this.pricing.enablePeakPricing) {
+            price *= (this.pricing.peakMultiplier || 1.0);
+        }
+
+        // Apply Weekend Pricing
+        if (this.pricing.enableWeekendPricing) {
+            const day = new Date().getDay();
+            if (day === 0 || day === 6) { // Sunday or Saturday
+                price *= (this.pricing.weekendMultiplier || 1.0);
+            }
+        }
+
+        return Math.round(price);
+    }
 
     // --- DATA CLEANUP ---
     async deleteUserByEmail(email: string) {

@@ -284,16 +284,54 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                     {/* Tabs */}
                     <div className="grid grid-cols-2 w-full bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-4">
                         <button 
-                            onClick={() => setSelectedRole(UserRole.CLIENT)} 
+                            onClick={() => {
+                                setSelectedRole(UserRole.CLIENT);
+                                setFormData({ email: '', password: '', name: '', country: '' });
+                            }}
                             className={`text-[10px] font-bold py-2 rounded-lg transition-all duration-200 ${selectedRole === UserRole.CLIENT ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                         >
                             {t('client').toUpperCase()}
                         </button>
                         <button 
-                            onClick={() => setSelectedRole(UserRole.DRIVER)} 
+                            onClick={() => {
+                                setSelectedRole(UserRole.DRIVER);
+                                setFormData({ email: '', password: '', name: '', country: '' });
+                            }}
                             className={`text-[10px] font-bold py-2 rounded-lg transition-all duration-200 ${selectedRole === UserRole.DRIVER ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                         >
                             {t('driver').toUpperCase()}
+                        </button>
+                    </div>
+                    
+                    {/* QUICK LOGIN BUTTONS (Dev/Demo Only) */}
+                    <div className="grid grid-cols-2 gap-2 mb-4 w-full">
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                if (selectedRole === UserRole.CLIENT) {
+                                    setFormData({...formData, email: 'client@test.com', password: 'password'});
+                                } else {
+                                    setFormData({...formData, email: 'driver@test.com', password: 'password'});
+                                }
+                            }}
+                            className="bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 dark:text-blue-400 py-2 rounded-lg text-[10px] font-bold transition-colors"
+                        >
+                            Test {selectedRole === UserRole.CLIENT ? 'Client' : 'Driver'}
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                if (selectedRole === UserRole.CLIENT) {
+                                    setFormData({...formData, email: 'newclient@test.com', password: 'password', name: 'New Client'});
+                                    setIsSignUp(true);
+                                } else {
+                                    setFormData({...formData, email: 'newdriver@test.com', password: 'password', name: 'New Driver', country: 'Australia'});
+                                    setIsSignUp(true);
+                                }
+                            }}
+                            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 dark:text-emerald-400 py-2 rounded-lg text-[10px] font-bold transition-colors"
+                        >
+                            New {selectedRole === UserRole.CLIENT ? 'Client' : 'Driver'}
                         </button>
                     </div>
                     
