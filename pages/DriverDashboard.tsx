@@ -1664,6 +1664,10 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  
+  // STATUS NOTIFICATIONS
+  const [showVerifiedModal, setShowVerifiedModal] = useState(false);
+  const [showWarningModal, setShowWarningModal] = useState<{type: 'REJECTED' | 'SUSPENDED', msg: string} | null>(null);
 
   const handleNavigation = (action: () => void) => {
       if (hasUnsavedChanges) {
@@ -1682,6 +1686,24 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
   };
 
   useEffect(() => { setCurrentUser(user); }, [user]);
+
+  // Status Change Listener
+  useEffect(() => {
+    // Check for Verified Transition
+    if (currentUser.status === UserStatus.ACTIVE) {
+        const hasSeen = localStorage.getItem(`verified_popup_shown_${currentUser.id}`);
+        if (!hasSeen) {
+            setShowVerifiedModal(true);
+            localStorage.setItem(`verified_popup_shown_${currentUser.id}`, 'true');
+        }
+    } else if (currentUser.status === UserStatus.REJECTED) {
+         setShowWarningModal({ type: 'REJECTED', msg: 'Your application has been rejected. Please contact support for more details.' });
+    } else if (currentUser.status === UserStatus.SUSPENDED) {
+         setShowWarningModal({ type: 'SUSPENDED', msg: 'Your account has been suspended. Please contact support immediately.' });
+    } else {
+        setShowWarningModal(null);
+    }
+  }, [currentUser.status, currentUser.id]);
 
   const activeJob = jobs.find(j => j.driverId === currentUser.id && [JobStatus.DRIVER_EN_ROUTE, JobStatus.DRIVER_ARRIVED, JobStatus.IN_PROGRESS].includes(j.status));
 
@@ -1837,7 +1859,31 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
   
   const renderSettingsContent = () => {
       switch(settingsView) {
-          case 'MAIN': return (<div className="pb-8 animate-fade-in"><div className="flex justify-center pt-4 pb-3"><div className="flex items-center gap-1 bg-white dark:bg-slate-800 px-4 py-1.5 rounded-full shadow-sm border border-slate-200 dark:border-slate-700"><Icons.Star className="w-4 h-4 fill-amber-400 text-amber-400" /><span className="font-bold text-slate-900 dark:text-white">0.0</span><span className="text-slate-400 text-xs ml-1">(0)</span><span className="text-slate-300 dark:text-slate-600 mx-2">|</span><Icons.Lock className="w-3 h-3 text-slate-400" /><Icons.ChevronRight className="w-3 h-3 text-slate-400 ml-1" /></div></div><div className="bg-white dark:bg-slate-800 border-t border-b border-slate-200 dark:border-slate-700"><SettingsMenuItem icon={Icons.UserCircle} label={t('driver_profile')} onClick={() => setSettingsView('PROFILE')} /><SettingsMenuItem icon={Icons.RotateCw} label={t('menu_smart_offers')} onClick={() => setSettingsView('OFFERS')} /><SettingsMenuItem icon={Icons.Bell} label={t('menu_notifications')} onClick={() => setSettingsView('NOTIFICATIONS')} /><SettingsMenuItem icon={Icons.Car} label={t('menu_vehicles')} onClick={() => setSettingsView('VEHICLES')} /><SettingsMenuItem icon={Icons.Info} label={t('menu_carrier')} onClick={() => setSettingsView('COMPANY')} /><SettingsMenuItem icon={Icons.MapPin} label={t('menu_area')} onClick={() => setSettingsView('ZONES')} /><SettingsMenuItem icon={Icons.DollarSign} label={t('menu_payout')} onClick={() => setSettingsView('PAYOUTS')} /><SettingsMenuItem icon={Icons.FileText} label={t('menu_reports')} onClick={() => setSettingsView('REPORTS')} /><SettingsMenuItem icon={Icons.Briefcase} label={t('menu_documents')} onClick={() => setSettingsView('DOCUMENTS')} /><SettingsMenuItem icon={Icons.Share} label={t('menu_invite')} onClick={() => setSettingsView('INVITE')} /><SettingsMenuItem icon={Icons.BookOpen} label={t('menu_app_info')} onClick={() => setSettingsView('INSTRUCTIONS')} /><SettingsMenuItem icon={Icons.HelpCircle} label={t('menu_help')} onClick={() => setSettingsView('SUPPORT')} /><SettingsMenuItem icon={Icons.Coins} label={t('currency')} value="AUD" onClick={() => setSettingsView('CURRENCY')} /><SettingsMenuItem icon={Icons.Ruler} label={t('units')} value="km" onClick={() => setSettingsView('DISTANCE')} /><SettingsMenuItem icon={Icons.Globe} label={t('language')} value="English" onClick={() => setSettingsView('LANGUAGE')} /></div><div className="p-6"><button onClick={handleLogout} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl shadow-lg transition-colors uppercase tracking-wide text-sm">{t('logout')}</button><p className="text-center text-xs text-slate-400 mt-4">Version 104.0.0 (7311)</p></div></div>);
+          case 'MAIN': return (<div className="pb-8 animate-fade-in"><div className="flex flex-col items-center justify-center pt-4 pb-3 gap-2">
+            <div className="flex items-center gap-1 bg-white dark:bg-slate-800 px-4 py-1.5 rounded-full shadow-sm border border-slate-200 dark:border-slate-700"><Icons.Star className="w-4 h-4 fill-amber-400 text-amber-400" /><span className="font-bold text-slate-900 dark:text-white">0.0</span><span className="text-slate-400 text-xs ml-1">(0)</span><span className="text-slate-300 dark:text-slate-600 mx-2">|</span><Icons.Lock className="w-3 h-3 text-slate-400" /><Icons.ChevronRight className="w-3 h-3 text-slate-400 ml-1" /></div>
+            
+            {/* STATUS BADGE */}
+            {currentUser.status === UserStatus.PENDING_VERIFICATION && (
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-full text-[10px] font-bold border border-amber-100 dark:border-amber-900/50">
+                    <Icons.AlertTriangle className="w-3 h-3" /> Under Verification
+                </div>
+            )}
+            {currentUser.status === UserStatus.PROCESSING && (
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full text-[10px] font-bold border border-blue-100 dark:border-blue-900/50">
+                    <Icons.Loader className="w-3 h-3 animate-spin" /> Processing
+                </div>
+            )}
+            {currentUser.status === UserStatus.ACTIVE && (
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-full text-[10px] font-bold border border-green-100 dark:border-green-900/50">
+                    <Icons.Check className="w-3 h-3" /> Verified Account
+                </div>
+            )}
+            {(currentUser.status === UserStatus.REJECTED || currentUser.status === UserStatus.SUSPENDED) && (
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-full text-[10px] font-bold border border-red-100 dark:border-red-900/50">
+                    <Icons.X className="w-3 h-3" /> {currentUser.status}
+                </div>
+            )}
+          </div><div className="bg-white dark:bg-slate-800 border-t border-b border-slate-200 dark:border-slate-700"><SettingsMenuItem icon={Icons.UserCircle} label={t('driver_profile')} onClick={() => setSettingsView('PROFILE')} /><SettingsMenuItem icon={Icons.RotateCw} label={t('menu_smart_offers')} onClick={() => setSettingsView('OFFERS')} /><SettingsMenuItem icon={Icons.Bell} label={t('menu_notifications')} onClick={() => setSettingsView('NOTIFICATIONS')} /><SettingsMenuItem icon={Icons.Car} label={t('menu_vehicles')} onClick={() => setSettingsView('VEHICLES')} /><SettingsMenuItem icon={Icons.Info} label={t('menu_carrier')} onClick={() => setSettingsView('COMPANY')} /><SettingsMenuItem icon={Icons.MapPin} label={t('menu_area')} onClick={() => setSettingsView('ZONES')} /><SettingsMenuItem icon={Icons.DollarSign} label={t('menu_payout')} onClick={() => setSettingsView('PAYOUTS')} /><SettingsMenuItem icon={Icons.FileText} label={t('menu_reports')} onClick={() => setSettingsView('REPORTS')} /><SettingsMenuItem icon={Icons.Briefcase} label={t('menu_documents')} onClick={() => setSettingsView('DOCUMENTS')} /><SettingsMenuItem icon={Icons.Share} label={t('menu_invite')} onClick={() => setSettingsView('INVITE')} /><SettingsMenuItem icon={Icons.BookOpen} label={t('menu_app_info')} onClick={() => setSettingsView('INSTRUCTIONS')} /><SettingsMenuItem icon={Icons.HelpCircle} label={t('menu_help')} onClick={() => setSettingsView('SUPPORT')} /><SettingsMenuItem icon={Icons.Coins} label={t('currency')} value="AUD" onClick={() => setSettingsView('CURRENCY')} /><SettingsMenuItem icon={Icons.Ruler} label={t('units')} value="km" onClick={() => setSettingsView('DISTANCE')} /><SettingsMenuItem icon={Icons.Globe} label={t('language')} value="English" onClick={() => setSettingsView('LANGUAGE')} /></div><div className="p-6"><button onClick={handleLogout} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl shadow-lg transition-colors uppercase tracking-wide text-sm">{t('logout')}</button><p className="text-center text-xs text-slate-400 mt-4">Version 104.0.0 (7311)</p></div></div>);
           case 'PROFILE': return <ProfileSettingsView currentUser={currentUser} onSave={handleUpdateProfile} onBack={() => setSettingsView('MAIN')} />;
           case 'NOTIFICATIONS': return (
             <SettingsLayout title={t('notifications')} onBack={() => setSettingsView('MAIN')} footer={
@@ -2219,6 +2265,54 @@ export const DriverDashboard: React.FC<DriverDashboardProps> = ({ user }) => {
         )}
         
         {selectedJobForOffer && (<OfferDetailsModal job={selectedJobForOffer} onClose={() => setSelectedJobForOffer(null)} onOffer={submitBid} onSkip={handleSkip} thresholds={thresholds} />)}
+    
+        {/* --- STATUS MODALS --- */}
+        {showVerifiedModal && (
+            <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in" onClick={() => setShowVerifiedModal(false)}>
+                <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-3xl p-8 shadow-2xl relative overflow-hidden animate-bounce-in" onClick={e => e.stopPropagation()}>
+                    <div className="absolute top-0 left-0 w-full h-2 bg-green-500"></div>
+                    <div className="flex flex-col items-center text-center">
+                        <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                            <Icons.Check className="w-10 h-10 text-green-600 dark:text-green-400 stroke-[3]" />
+                        </div>
+                        <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">You're Verified!</h3>
+                        <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                            Congratulations! Your account has been approved. You can now close this window and start receiving trip requests.
+                        </p>
+                        <button 
+                            onClick={() => setShowVerifiedModal(false)}
+                            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-green-600/20 transition-all active:scale-95"
+                        >
+                            Start Earning
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {showWarningModal && (
+            <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
+                <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-3xl p-8 shadow-2xl border-t-4 border-red-600 animate-shake">
+                    <div className="flex flex-col items-center text-center">
+                        <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-6">
+                            <Icons.AlertTriangle className="w-10 h-10 text-red-600" />
+                        </div>
+                        <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">
+                            {showWarningModal.type === 'REJECTED' ? 'Application Rejected' : 'Account Suspended'}
+                        </h3>
+                        <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                            {showWarningModal.msg}
+                        </p>
+                        <button 
+                            onClick={() => setShowWarningModal(null)}
+                            className="w-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-900 dark:text-white font-bold py-4 rounded-xl transition-colors"
+                        >
+                            Close Warning
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
   );
 };
