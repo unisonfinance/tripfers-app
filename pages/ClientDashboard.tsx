@@ -12,6 +12,7 @@ import { SupportView } from './client/SupportView';
 import { SettingsView } from './client/SettingsView';
 import { ChatWindow } from '../components/ChatWindow';
 import { ConfirmationModal } from '../components/ConfirmationModal';
+import { Skeleton } from '../components/Skeleton';
 
 interface Coords {
   lat: number;
@@ -321,11 +322,13 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
   
   // Payment State
   const [paymentModalData, setPaymentModalData] = useState<{jobId: string, bidId: string, amount: number, driverName: string} | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // --- MAP & PRICING ---
   const mapRef = useRef<HTMLDivElement>(null);
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
   const [calculatedDuration, setCalculatedDuration] = useState<string | null>(null);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
   const [pricingConfig, setPricingConfig] = useState<any>(null);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | undefined>(undefined);
@@ -405,6 +408,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
         // Always refresh pricing to ensure dynamic updates from Admin Panel
         const config = await backend.getPricingConfig();
         setPricingConfig(config);
+        setIsInitialLoading(false);
     };
 
     // Initial Load
@@ -466,6 +470,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
         const hasValidDropoff = bookingType === 'HOURLY' || (formData.dropoffCoords || (formData.dropoff && formData.dropoff.length > 2));
 
         if (hasValidPickup && hasValidDropoff) {
+            setIsCalculatingRoute(true);
             const directionsService = new window.google.maps.DirectionsService();
             const directionsRenderer = new window.google.maps.DirectionsRenderer({ map, suppressMarkers: false });
             
@@ -484,6 +489,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
             };
 
             directionsService.route(request, (result: any, status: any) => {
+                setIsCalculatingRoute(false);
                 if (status === 'OK' && result) {
                     directionsRenderer.setDirections(result);
                     setRouteError(null);
@@ -918,16 +924,16 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                     <div className="flex flex-col items-center justify-center p-4 border-r border-slate-200 dark:border-slate-700">
                         <Icons.Route className="w-6 h-6 text-red-600 mb-1.5" />
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Distance</span>
-                        <span className="text-xl font-bold text-slate-900 dark:text-white font-mono tracking-tight">
-                            {calculatedDistance ? `${calculatedDistance} km` : '---'}
-                        </span>
+                        <div className="text-xl font-bold text-slate-900 dark:text-white font-mono tracking-tight flex justify-center">
+                            {isCalculatingRoute ? <Skeleton className="h-6 w-16" /> : (calculatedDistance ? `${calculatedDistance} km` : '---')}
+                        </div>
                     </div>
                     <div className="flex flex-col items-center justify-center p-4">
                         <Icons.Clock className="w-6 h-6 text-red-600 mb-1.5" />
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Time</span>
-                        <span className="text-xl font-bold text-slate-900 dark:text-white font-mono tracking-tight">
-                            {calculatedDuration ? calculatedDuration : '---'}
-                        </span>
+                        <div className="text-xl font-bold text-slate-900 dark:text-white font-mono tracking-tight flex justify-center">
+                            {isCalculatingRoute ? <Skeleton className="h-6 w-16" /> : (calculatedDuration ? calculatedDuration : '---')}
+                        </div>
                     </div>
                 </div>
             )}
@@ -992,7 +998,12 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                                                 </p>
                                             </div>
                                             <div className="text-right">
-                                                {price ? (
+                                                {isCalculatingRoute ? (
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <span className="block text-[10px] text-slate-400 font-bold mb-0.5">EST.</span>
+                                                        <Skeleton className="h-6 w-16" />
+                                                    </div>
+                                                ) : (price ? (
                                                     <>
                                                         <span className="block text-[10px] text-slate-400 font-bold mb-0.5">EST.</span>
                                                         <span className={`block text-xl font-black ${isSelected ? 'text-green-700' : 'text-slate-700 dark:text-slate-300'}`}>
@@ -1001,7 +1012,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                                                     </>
                                                 ) : (
                                                     <span className="text-xs font-bold text-slate-300">---</span>
-                                                )}
+                                                ))}
                                             </div>
                                         </div>
 
@@ -1300,7 +1311,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
 
                 <div className="space-y-4 pt-4">
                     {/* Make New Booking Button for Requested Tab */}
-                    {ridesFilter === 'REQUESTED' && (
+                    {ridesFilter === 'REQUESTED' && !isInitialLoading && (
                         <div className="px-4 md:px-0 mb-4">
                             <button
                                 onClick={() => { setEditingJobId(null); setFormData(initialState); setCurrentView('book'); }}
@@ -1312,7 +1323,27 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                         </div>
                     )}
 
-                    {filteredJobs.length === 0 && !pendingBooking && (
+                    {isInitialLoading && (
+                        <div className="space-y-4 px-4 md:px-0">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                                    <div className="flex justify-between items-start">
+                                        <div className="space-y-3 w-2/3">
+                                            <Skeleton className="h-6 w-3/4" />
+                                            <Skeleton className="h-4 w-1/2" />
+                                            <div className="flex gap-2 pt-2">
+                                                <Skeleton className="h-5 w-20 rounded" />
+                                                <Skeleton className="h-5 w-32 rounded" />
+                                            </div>
+                                        </div>
+                                        <Skeleton className="h-8 w-8 rounded-full" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {!isInitialLoading && filteredJobs.length === 0 && !pendingBooking && (
                         <div className="text-center py-12 px-6">
                             <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Icons.Car className="w-8 h-8 text-slate-400" />
@@ -1324,7 +1355,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                         </div>
                     )}
 
-                    {filteredJobs.map(job => {
+                    {!isInitialLoading && filteredJobs.map(job => {
                         const isExpanded = expandedJobId === job.id;
                         return (
                             <div key={job.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mx-4 md:mx-0 animate-fade-in">
