@@ -5,6 +5,7 @@ import { Icons } from '../components/Icons';
 import { User, UserRole, UserStatus, Job, PricingConfig, VehicleSettings, IntegrationsConfig, DriverDocument, PromoCode, JobStatus, VehiclePhoto, CompanyProfile, AdminBadgeSettings, PricingThresholds, SupportSettings, BrandingSettings } from '../types';
 import { ChatWindow } from '../components/ChatWindow';
 import { ConfirmationModal } from '../components/ConfirmationModal';
+import { Toast } from '../components/Toast';
 
 // --- SUB-COMPONENTS ---
 
@@ -742,6 +743,7 @@ const UserDetailsModal = ({ user, onClose, onUpdate, onPayout }: any) => {
     const [viewPhoto, setViewPhoto] = useState<string | null>(null);
     const [selectedStatus, setSelectedStatus] = useState<UserStatus>(user.status);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [toast, setToast] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
 
     useEffect(() => {
         setSelectedStatus(user.status);
@@ -750,6 +752,7 @@ const UserDetailsModal = ({ user, onClose, onUpdate, onPayout }: any) => {
     const handleSaveStatus = async () => {
         await backend.updateUserStatus(user.id, selectedStatus);
         onUpdate();
+        setToast({ message: 'Changes saved successfully to Firestore!', type: 'success' });
     };
 
     const handleDeleteUser = async () => {
@@ -797,8 +800,8 @@ const UserDetailsModal = ({ user, onClose, onUpdate, onPayout }: any) => {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-0 md:p-4 animate-fade-in overflow-hidden">
-             <div className="bg-white dark:bg-slate-900 w-full h-full md:h-auto md:max-h-[90vh] md:max-w-3xl md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up">
+        <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-0 md:p-4 animate-fade-in overflow-hidden" onClick={onClose}>
+             <div className="bg-white dark:bg-slate-900 w-full h-full md:h-auto md:max-h-[90vh] md:max-w-3xl md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up" onClick={(e) => e.stopPropagation()}>
                  
                  {/* HEADER */}
                  <div className="p-4 md:p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
@@ -1077,6 +1080,15 @@ const UserDetailsModal = ({ user, onClose, onUpdate, onPayout }: any) => {
                      </button>
                  </div>
              )}
+
+            {/* SUCCESS TOAST */}
+            {toast && (
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast(null)} 
+                />
+            )}
         </div>
     );
 }
