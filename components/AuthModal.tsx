@@ -303,37 +303,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                         </button>
                     </div>
                     
-                    {/* QUICK LOGIN BUTTONS (Dev/Demo Only) */}
-                    <div className="grid grid-cols-2 gap-2 mb-4 w-full">
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                if (selectedRole === UserRole.CLIENT) {
-                                    setFormData({...formData, email: 'client@test.com', password: 'password'});
-                                } else {
-                                    setFormData({...formData, email: 'driver@test.com', password: 'password'});
-                                }
-                            }}
-                            className="bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 dark:text-blue-400 py-2 rounded-lg text-[10px] font-bold transition-colors"
-                        >
-                            Test {selectedRole === UserRole.CLIENT ? 'Client' : 'Driver'}
-                        </button>
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                if (selectedRole === UserRole.CLIENT) {
-                                    setFormData({...formData, email: 'newclient@test.com', password: 'password', name: 'New Client'});
-                                    setIsSignUp(true);
-                                } else {
-                                    setFormData({...formData, email: 'newdriver@test.com', password: 'password', name: 'New Driver', country: 'Australia'});
-                                    setIsSignUp(true);
-                                }
-                            }}
-                            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 dark:text-emerald-400 py-2 rounded-lg text-[10px] font-bold transition-colors"
-                        >
-                            New {selectedRole === UserRole.CLIENT ? 'Client' : 'Driver'}
-                        </button>
-                    </div>
+                    {/* QUICK LOGIN BUTTONS (Dev/Demo Only) - REMOVED */}
                     
                     <form onSubmit={handleSubmit} className="w-full space-y-3">
                          {isSignUp && (
