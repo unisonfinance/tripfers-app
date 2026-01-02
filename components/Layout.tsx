@@ -270,11 +270,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, toggle
          <div className="md:hidden fixed top-16 left-0 right-0 z-40 bg-white dark:bg-slate-800 px-4 py-3 shadow-sm border-b border-slate-100 dark:border-slate-700">
               <button 
                 onClick={() => setShowMembershipModal(true)} 
-                className={`w-full font-bold py-2.5 rounded-lg shadow-sm text-sm flex items-center justify-center gap-2 transition-colors ${marketingBanner.backgroundColor || 'bg-emerald-600 hover:bg-emerald-700'}`}
+                className={`w-full font-bold py-2.5 rounded-lg shadow-sm text-sm flex items-center justify-center gap-2 transition-colors text-center ${marketingBanner.backgroundColor || 'bg-emerald-600 hover:bg-emerald-700'}`}
                 style={{ color: marketingBanner.textColor }}
               >
-                 <Icons.Star className="w-4 h-4 stroke-none" style={{ fill: marketingBanner.textColor }} />
-                 {marketingBanner.text || t('become_member')}
+                 <Icons.Star className="w-4 h-4 stroke-none flex-shrink-0" style={{ fill: marketingBanner.textColor }} />
+                 <span className="text-center">{marketingBanner.text || t('become_member')}</span>
               </button>
          </div>
       )}

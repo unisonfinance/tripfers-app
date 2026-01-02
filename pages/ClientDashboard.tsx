@@ -14,6 +14,7 @@ import { ChatWindow } from '../components/ChatWindow';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 import { Skeleton } from '../components/Skeleton';
 import { ActiveRideSheet } from '../components/ActiveRideSheet';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Coords {
   lat: number;
@@ -477,98 +478,105 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
   useEffect(() => {
     // Only initialize map if we have a valid DOM ref and currentView is 'book'
     if (currentView === 'book' && window.google && mapRef.current) {
-        // High-End Map Styling
-        const mapStyles = [
-            {
-                "featureType": "all",
-                "elementType": "labels.text.fill",
-                "stylers": [{"saturation": 36}, {"color": "#333333"}, {"lightness": 40}]
-            },
-            {
-                "featureType": "all",
-                "elementType": "labels.text.stroke",
-                "stylers": [{"visibility": "on"}, {"color": "#ffffff"}, {"lightness": 16}]
-            },
-            {
-                "featureType": "all",
-                "elementType": "labels.icon",
-                "stylers": [{"visibility": "off"}]
-            },
-            {
-                "featureType": "administrative",
-                "elementType": "geometry.fill",
-                "stylers": [{"color": "#fefefe"}, {"lightness": 20}]
-            },
-            {
-                "featureType": "administrative",
-                "elementType": "geometry.stroke",
-                "stylers": [{"color": "#fefefe"}, {"lightness": 17}, {"weight": 1.2}]
-            },
-            {
-                "featureType": "landscape",
-                "elementType": "geometry",
-                "stylers": [{"color": "#f5f5f5"}, {"lightness": 20}]
-            },
-            {
-                "featureType": "poi",
-                "elementType": "geometry",
-                "stylers": [{"color": "#f5f5f5"}, {"lightness": 21}]
-            },
-            {
-                "featureType": "poi.park",
-                "elementType": "geometry",
-                "stylers": [{"color": "#e5e5e5"}, {"lightness": 21}]
-            },
-            {
-                "featureType": "road.highway",
-                "elementType": "geometry.fill",
-                "stylers": [{"color": "#ffffff"}, {"lightness": 17}]
-            },
-            {
-                "featureType": "road.highway",
-                "elementType": "geometry.stroke",
-                "stylers": [{"color": "#ffffff"}, {"lightness": 29}, {"weight": 0.2}]
-            },
-            {
-                "featureType": "road.arterial",
-                "elementType": "geometry",
-                "stylers": [{"color": "#ffffff"}, {"lightness": 18}]
-            },
-            {
-                "featureType": "road.local",
-                "elementType": "geometry",
-                "stylers": [{"color": "#ffffff"}, {"lightness": 16}]
-            },
-            {
-                "featureType": "transit",
-                "elementType": "geometry",
-                "stylers": [{"color": "#f2f2f2"}, {"lightness": 19}]
-            },
-            {
-                "featureType": "water",
-                "elementType": "geometry",
-                "stylers": [{"color": "#e9e9e9"}, {"lightness": 17}]
-            }
-        ];
+        // PIN CONSTANTS
+        const PIN_PATH = "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z";
+        
+        const createPinIcon = (color: string) => ({
+            path: PIN_PATH,
+            fillColor: color,
+            fillOpacity: 1,
+            strokeWeight: 1.5, 
+            strokeColor: "#ffffff",
+            scale: 2, 
+            anchor: new window.google.maps.Point(12, 22), 
+            labelOrigin: new window.google.maps.Point(12, 9), 
+        });
 
+        // Revert to Standard Map Styling (User Request)
         const map = new window.google.maps.Map(mapRef.current, {
-            center: userLocation || { lat: -33.8688, lng: 151.2093 }, // Default Sydney
-            zoom: 13,
-            disableDefaultUI: true,
-            styles: mapStyles, // Apply custom styles
-            gestureHandling: 'greedy', // Better mobile touch handling
-            zoomControl: false, // Clean UI
+            center: formData.pickupCoords || userLocation || { lat: -33.8688, lng: 151.2093 },
+            zoom: 15,
+            disableDefaultUI: false, // Standard UI
+            gestureHandling: 'greedy',
+            zoomControl: true,
             mapTypeControl: false,
-            scaleControl: false,
+            scaleControl: true,
             streetViewControl: false,
             rotateControl: false,
             fullscreenControl: false
         });
         
+        // IMMEDIATE PIN PLACEMENT (User Request)
+        if (formData.pickupCoords) {
+             new window.google.maps.Marker({
+                position: formData.pickupCoords,
+                map: map,
+                icon: createPinIcon("#16a34a"), // Green
+                zIndex: 100,
+            });
+        }
+
+        // Waypoints (Blue)
+        formData.stops.forEach((stop) => {
+             if (stop.lat && stop.lng) {
+                 new window.google.maps.Marker({
+                    position: { lat: stop.lat, lng: stop.lng },
+                    map: map,
+                    icon: createPinIcon("#2563eb"), // Blue
+                    zIndex: 90,
+                });
+             }
+        });
+
+        if (formData.dropoffCoords && bookingType !== 'HOURLY') {
+             new window.google.maps.Marker({
+                position: formData.dropoffCoords,
+                map: map,
+                icon: createPinIcon("#dc2626"), // Red
+                zIndex: 100,
+            });
+        }
+
         // Use coordinates if available for route calculation to avoid "NOT_FOUND" errors
         const origin = formData.pickupCoords || formData.pickup;
         const destination = bookingType === 'HOURLY' ? origin : (formData.dropoffCoords || formData.dropoff);
         
+        // AUTO-ZOOM (FIT BOUNDS) - User Request
+        const bounds = new window.google.maps.LatLngBounds();
+        let hasPoints = false;
+
+        if (formData.pickupCoords) {
+            bounds.extend(formData.pickupCoords);
+            hasPoints = true;
+        }
+        if (formData.dropoffCoords && bookingType !== 'HOURLY') {
+            bounds.extend(formData.dropoffCoords);
+            hasPoints = true;
+        }
+        formData.stops.forEach(s => {
+            if (s.lat && s.lng) {
+                bounds.extend({lat: s.lat, lng: s.lng});
+                hasPoints = true;
+            }
+        });
+
+        // Only fit bounds if we have points and it's not just a single point (unless we want to center)
+        // If we have > 1 point, fit bounds. If 1 point, center is handled by map init options usually, but we can enforce it.
+        if (hasPoints && !isCalculatingRoute) { // Don't fight with route renderer if it auto-bounds
+             if (!bounds.isEmpty()) {
+                 const ne = bounds.getNorthEast();
+                 const sw = bounds.getSouthWest();
+                 // Check if bounds are just a single point
+                 if (ne.equals(sw)) {
+                     map.setCenter(ne);
+                     map.setZoom(15);
+                 } else {
+                     map.fitBounds(bounds);
+                     // Optional: Add padding? Google maps usually handles padding well.
+                 }
+             }
+        }
+
         // Validate inputs before routing
         const hasValidPickup = formData.pickupCoords || (formData.pickup && formData.pickup.length > 2);
         const hasValidDropoff = bookingType === 'HOURLY' || (formData.dropoffCoords || (formData.dropoff && formData.dropoff.length > 2));
@@ -578,12 +586,13 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
             const directionsService = new window.google.maps.DirectionsService();
             const directionsRenderer = new window.google.maps.DirectionsRenderer({ 
                 map, 
-                suppressMarkers: true, // We will use custom markers
+                suppressMarkers: true, // We use our custom immediate markers
                 polylineOptions: {
                     strokeColor: '#16a34a', // Green-600
                     strokeWeight: 5,
                     strokeOpacity: 0.8
-                }
+                },
+                preserveViewport: false // Let the route calculation adjust viewport if needed
             });
             
             const waypoints = formData.stops
@@ -618,36 +627,6 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                     const hours = Math.floor(dur / 3600);
                     const mins = Math.floor((dur % 3600) / 60);
                     setCalculatedDuration(`${hours}h ${mins}m`);
-
-                    // Custom Markers
-                    const leg = result.routes[0].legs[0];
-                    new window.google.maps.Marker({
-                        position: leg.start_location,
-                        map: map,
-                        icon: {
-                            path: window.google.maps.SymbolPath.CIRCLE,
-                            scale: 8,
-                            fillColor: "#16a34a",
-                            fillOpacity: 1,
-                            strokeWeight: 3,
-                            strokeColor: "#ffffff",
-                        }
-                    });
-
-                    if (bookingType !== 'HOURLY') {
-                         new window.google.maps.Marker({
-                            position: result.routes[0].legs[result.routes[0].legs.length - 1].end_location,
-                            map: map,
-                            icon: {
-                                path: window.google.maps.SymbolPath.CIRCLE,
-                                scale: 8,
-                                fillColor: "#dc2626", // Red
-                                fillOpacity: 1,
-                                strokeWeight: 3,
-                                strokeColor: "#ffffff",
-                            }
-                        });
-                    }
                 } else {
                     console.debug("Route calculation failed:", status);
                     setRouteError(null); // Clear error if recalculation is just invalid
@@ -663,22 +642,28 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
   };
 
   const updateStopAddress = (index: number, val: string) => {
-      const newStops = [...formData.stops];
-      // If manually typing, clear coords to avoid mismatch
-      newStops[index] = { ...newStops[index], address: val, lat: undefined, lng: undefined };
-      setFormData(prev => ({...prev, stops: newStops}));
+      setFormData(prev => {
+          const newStops = [...prev.stops];
+          // If manually typing, clear coords to avoid mismatch
+          newStops[index] = { ...newStops[index], address: val, lat: undefined, lng: undefined };
+          return {...prev, stops: newStops};
+      });
   };
 
   const updateStopLocation = (index: number, loc: {lat: number, lng: number}) => {
-      const newStops = [...formData.stops];
-      newStops[index] = { ...newStops[index], lat: loc.lat, lng: loc.lng };
-      setFormData(prev => ({...prev, stops: newStops}));
+      setFormData(prev => {
+          const newStops = [...prev.stops];
+          newStops[index] = { ...newStops[index], lat: loc.lat, lng: loc.lng };
+          return {...prev, stops: newStops};
+      });
   };
   
   const removeStop = (index: number) => {
-      const newStops = [...formData.stops];
-      newStops.splice(index, 1);
-      setFormData(prev => ({...prev, stops: newStops}));
+      setFormData(prev => {
+          const newStops = [...prev.stops];
+          newStops.splice(index, 1);
+          return {...prev, stops: newStops};
+      });
   };
 
   const getPrice = (dist: number, type: string) => {
@@ -912,6 +897,13 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
       }, [] as Job[])
       .slice(0, 5);
 
+  const pageVariants = {
+    initial: { opacity: 0, x: 20 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -20 },
+    transition: { duration: 0.2, ease: "easeInOut" }
+  };
+
   return (
     <div className={`relative min-h-screen pb-20 bg-slate-50 dark:bg-slate-900 ${currentView === 'book' ? '' : 'p-4 md:p-8'}`}>
       <style>{`
@@ -919,11 +911,17 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
       
+      <AnimatePresence mode="wait">
       {/* --- VIEW: BOOK --- */}
       {currentView === 'book' && (
-        <>
-
-
+        <motion.div 
+            key="book"
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={pageVariants}
+            className="w-full"
+        >
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 animate-fade-in overflow-hidden max-w-4xl mx-auto md:mt-0">
           
             {/* 1. TABS */}
@@ -1029,7 +1027,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                         <div key={index} className="flex gap-3 relative w-full items-center animate-fade-in h-14">
                             <div className="w-10 flex-shrink-0 flex flex-col items-center justify-center h-full relative">
                                 <div className="absolute -top-2 -bottom-2 left-0 right-0 mx-auto w-0.5 bg-slate-300 dark:bg-slate-600"></div>
-                                <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full shadow-sm ring-4 ring-slate-50 dark:ring-slate-900 z-10 border border-slate-300"></div>
+                                <div className="w-2.5 h-2.5 bg-blue-600 rounded-full shadow-sm ring-4 ring-slate-50 dark:ring-slate-900 z-10 border border-slate-300"></div>
                             </div>
                             <div className="flex-1 flex gap-2 h-full">
                                 <div className="flex-1">
@@ -1428,12 +1426,20 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                 </button>
             </div>
           </div>
-        </>
+        </motion.div>
       )}
 
       {/* ... (rest of the component) ... */}
       {/* RIDES VIEW */}
       {currentView === 'rides' && (
+        <motion.div 
+            key="rides"
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={pageVariants}
+            className="w-full"
+        >
         <div className="max-w-4xl mx-auto space-y-4">
            {/* ... (Pending Booking Card) ... */}
            {pendingBooking && (
@@ -1700,17 +1706,40 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                 </div>
            )}
         </div>
+      </motion.div>
       )}
 
-      {currentView === 'support' && <SupportView />}
+      {currentView === 'support' && (
+          <motion.div 
+            key="support" 
+            variants={pageVariants} 
+            initial="initial" 
+            animate="animate" 
+            exit="exit" 
+            className="w-full"
+          >
+            <SupportView />
+          </motion.div>
+      )}
       
       {currentView === 'settings' && (
-        <SettingsView 
-            user={user} 
-            onLoginRequest={() => setShowAuthModal(true)} 
-            onLogout={handleLogout} 
-        />
+        <motion.div 
+            key="settings" 
+            variants={pageVariants} 
+            initial="initial" 
+            animate="animate" 
+            exit="exit" 
+            className="w-full"
+        >
+            <SettingsView 
+                user={user} 
+                onLoginRequest={() => setShowAuthModal(true)} 
+                onLogout={handleLogout} 
+            />
+        </motion.div>
       )}
+
+      </AnimatePresence>
 
       {/* --- MOBILE FOOTER NAV --- */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-2 flex justify-around items-center z-50 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
