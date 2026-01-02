@@ -932,19 +932,19 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                                         rounded-2xl border-2 transition-all duration-300 ease-out overflow-hidden
                                         flex flex-col text-left group/card
                                         ${isSelected 
-                                            ? 'border-red-600 bg-white dark:bg-slate-800 shadow-[0_10px_40px_-10px_rgba(220,38,38,0.2)] scale-100 z-10 ring-1 ring-red-600/20' 
-                                            : 'border-transparent bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 shadow-sm scale-[0.98] opacity-60 hover:opacity-100 hover:scale-[0.99] grayscale-[0.5] hover:grayscale-0'
+                                            ? 'border-green-600 bg-white dark:bg-slate-800 shadow-[0_10px_40px_-10px_rgba(22,163,74,0.2)] scale-100 z-10 ring-1 ring-green-600/20' 
+                                            : 'border-transparent bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 shadow-sm scale-[0.95] opacity-60 hover:opacity-100 hover:scale-[0.98] grayscale-[0.8] hover:grayscale-0'
                                         }
                                     `}
                                 >
                                     {/* Selection Indicator */}
-                                    <div className={`absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center transition-all ${isSelected ? 'bg-red-600 text-white scale-100' : 'bg-slate-100 dark:bg-slate-700 text-transparent scale-0 group-hover/card:scale-100'}`}>
+                                    <div className={`absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center transition-all ${isSelected ? 'bg-green-600 text-white scale-100' : 'bg-slate-100 dark:bg-slate-700 text-transparent scale-0 group-hover/card:scale-100'}`}>
                                         <Icons.Check className="w-3.5 h-3.5" />
                                     </div>
 
                                     {/* Car Image Area */}
-                                    <div className={`h-32 md:h-40 w-full flex items-center justify-center p-4 relative transition-all ${isSelected ? 'bg-gradient-to-b from-red-50/50 to-transparent dark:from-red-900/10' : ''}`}>
-                                        <car.icon className={`w-full h-full object-contain transition-transform duration-500 ${isSelected ? 'scale-110 drop-shadow-xl' : 'scale-100 group-hover/card:scale-105'}`} />
+                                    <div className={`h-32 md:h-40 w-full flex items-center justify-center p-4 relative transition-all ${isSelected ? 'bg-gradient-to-b from-green-50/50 to-transparent dark:from-green-900/10' : ''}`}>
+                                        <car.icon className={`w-full h-full object-contain transition-transform duration-500 ${isSelected ? 'scale-125 drop-shadow-2xl' : 'scale-100 group-hover/card:scale-110'}`} />
                                     </div>
 
                                     {/* Content Area */}
@@ -962,7 +962,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                                                 {price ? (
                                                     <>
                                                         <span className="block text-[10px] text-slate-400 font-bold mb-0.5">EST.</span>
-                                                        <span className={`block text-xl font-black ${isSelected ? 'text-red-600' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                        <span className={`block text-xl font-black ${isSelected ? 'text-green-600' : 'text-slate-700 dark:text-slate-300'}`}>
                                                             ${price}
                                                         </span>
                                                     </>
@@ -975,7 +975,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                                         {/* Features */}
                                         <div className={`
                                             flex items-center gap-3 py-3 px-4 rounded-xl text-xs font-bold transition-colors
-                                            ${isSelected ? 'bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-200' : 'bg-slate-50 dark:bg-slate-800 text-slate-400'}
+                                            ${isSelected ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' : 'bg-slate-50 dark:bg-slate-800 text-slate-400'}
                                         `}>
                                             <span className="flex items-center gap-2">
                                                 <Icons.User className="w-3.5 h-3.5"/> {car.pax}
