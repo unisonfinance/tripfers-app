@@ -4,10 +4,6 @@ const cors = require("cors")({ origin: true });
 
 admin.initializeApp();
 
-// Initialize Stripe with Secret Key
-// Use environment variable for security
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
-
 exports.createStripeSession = functions.https.onCall(async (data, context) => {
   // data: { jobId, price, successUrl, cancelUrl, customerEmail, customerName }
   
@@ -18,7 +14,24 @@ exports.createStripeSession = functions.https.onCall(async (data, context) => {
   }
 
   try {
-      // Create a Checkout Session
+      // 1. Fetch Stripe Secret Key from Firestore (Admin Settings)
+      const settingsDoc = await admin.firestore().collection('settings').doc('integrations').get();
+      
+      if (!settingsDoc.exists) {
+          throw new Error("Integration settings not found.");
+      }
+
+      const settings = settingsDoc.data();
+      const stripeSecretKey = settings.stripeSecretKey;
+
+      if (!stripeSecretKey) {
+          throw new Error("Stripe Secret Key is not configured in Admin Settings.");
+      }
+
+      // 2. Initialize Stripe with the fetched key
+      const stripe = require("stripe")(stripeSecretKey);
+
+      // 3. Create a Checkout Session
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [
