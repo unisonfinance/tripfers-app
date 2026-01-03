@@ -9,9 +9,10 @@ interface AuthModalProps {
   onClose: () => void;
   onLogin: (user: User) => void;
   initialRole?: UserRole | null;
+  customMessage?: string;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, initialRole }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, initialRole, customMessage }) => {
   const { t } = useTranslation();
   const [selectedRole, setSelectedRole] = useState<UserRole>(initialRole || UserRole.CLIENT);
   const [isSignUp, setIsSignUp] = useState(false);
@@ -220,6 +221,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                     <div className="space-y-4">
                         <AuthOptionButton variant="white" text={t('continue_email')} icon={<Icons.Mail className="w-6 h-6"/>} onClick={() => setAuthStep('email')} />
                         <AuthOptionButton variant="black" text={t('continue_google')} icon={<Icons.Google className="w-6 h-6"/>} onClick={handleGoogleLogin} />
+                        <button 
+                            onClick={() => {
+                                setSelectedRole(UserRole.AGENCY);
+                                setFormData({ email: '', password: '', name: '', country: '' });
+                            }}
+                            className={`text-[10px] font-bold py-2 rounded-lg transition-all duration-200 ${selectedRole === UserRole.AGENCY ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        >
+                            PARTNER
+                        </button>
                     </div>
                 ) : (
                  <form onSubmit={handleSubmit} className="space-y-4">
@@ -274,6 +284,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                     <h2 className="text-slate-900 dark:text-white text-base font-bold tracking-tight mb-1">{t('client_driver_portal')}</h2>
                     <p className="text-slate-500 dark:text-slate-400 text-[10px] mb-4 text-center">Login to access your dashboard</p>
                     
+                    {customMessage && (
+                       <div className="w-full mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900 rounded-xl text-center shadow-sm">
+                           <p className="text-xs font-bold text-red-600 dark:text-red-400 leading-relaxed">{customMessage}</p>
+                       </div>
+                    )}
+
                     {error && (
                        <div className="w-full mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900 rounded-lg text-red-600 dark:text-red-400 text-xs flex items-start gap-2">
                          <Icons.Shield className="w-4 h-4 shrink-0" />
@@ -282,7 +298,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                     )}
 
                     {/* Tabs */}
-                    <div className="grid grid-cols-2 w-full bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-4">
+                    <div className="grid grid-cols-3 w-full bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-4">
                         <button 
                             onClick={() => {
                                 setSelectedRole(UserRole.CLIENT);
@@ -300,6 +316,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                             className={`text-[10px] font-bold py-2 rounded-lg transition-all duration-200 ${selectedRole === UserRole.DRIVER ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                         >
                             {t('driver').toUpperCase()}
+                        </button>
+                        <button 
+                            onClick={() => {
+                                setSelectedRole(UserRole.AGENCY);
+                                setFormData({ email: '', password: '', name: '', country: '' });
+                            }}
+                            className={`text-[10px] font-bold py-2 rounded-lg transition-all duration-200 ${selectedRole === UserRole.AGENCY ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        >
+                            PARTNER
                         </button>
                     </div>
                     

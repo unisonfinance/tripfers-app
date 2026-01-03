@@ -122,13 +122,14 @@ const PaymentModal = ({ isOpen, onClose, amount, driverName, onPay }: any) => {
     
     if (!isOpen) return null;
 
-    const handlePay = () => {
+    const handlePay = async () => {
         setLoading(true);
-        // Simulate Stripe processing
-        setTimeout(() => {
+        try {
+            await onPay();
+        } catch (e) {
             setLoading(false);
-            onPay();
-        }, 2000);
+            alert("Payment failed initialization");
+        }
     };
 
     return (
@@ -148,33 +149,17 @@ const PaymentModal = ({ isOpen, onClose, amount, driverName, onPay }: any) => {
                         <p className="text-xs text-slate-400">{t('driver')}: {driverName}</p>
                     </div>
 
-                    <div className="space-y-3">
-                        <div className="space-y-1">
-                            <label className="text-xs font-bold text-slate-500 uppercase">{t('card_number')}</label>
-                            <div className="relative">
-                                <Icons.Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                <input type="text" placeholder="4242 4242 4242 4242" className="w-full pl-10 p-3 bg-slate-50 dark:bg-slate-900 border rounded-lg dark:border-slate-700 font-mono text-sm" />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-500 uppercase">{t('expiry')}</label>
-                                <input type="text" placeholder="MM / YY" className="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-lg dark:border-slate-700 font-mono text-sm text-center" />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-500 uppercase">{t('cvc')}</label>
-                                <input type="text" placeholder="123" className="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-lg dark:border-slate-700 font-mono text-sm text-center" />
-                            </div>
-                        </div>
-                    </div>
-
                     <button 
                         onClick={handlePay} 
                         disabled={loading}
                         className="w-full bg-black hover:bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
                     >
-                        {loading ? t('processing') : `${t('pay')} $${amount}`}
+                        {loading ? t('processing') : `Proceed to Stripe`}
                     </button>
+                    
+                    <p className="text-xs text-center text-slate-400">
+                        You will be redirected to Stripe securely.
+                    </p>
                 </div>
             </div>
         </div>
@@ -404,6 +389,32 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
         // If user clicks "Edit" on draft card, we load it here.
     }
   }, [pendingBooking]);
+
+  // Check for Payment Success
+  useEffect(() => {
+      const hash = window.location.hash;
+      const hashParams = new URLSearchParams(hash.split('?')[1]);
+      const success = hashParams.get('payment_success');
+      const cancel = hashParams.get('payment_cancel');
+      const jobId = hashParams.get('jobId');
+      
+      if (success === 'true' && jobId) {
+          backend.markJobAsPaid(jobId).then(() => {
+              window.history.replaceState({}, document.title, window.location.hash.split('?')[0]);
+              alert("Payment Successful! Driver Booked.");
+              setRidesFilter('UPCOMING');
+              backend.getJobs(user?.role || UserRole.CLIENT, user?.id).then(setJobs);
+              confetti({
+                  particleCount: 200,
+                  spread: 100,
+                  origin: { y: 0.6 }
+              });
+          });
+      } else if (cancel === 'true') {
+           window.history.replaceState({}, document.title, window.location.hash.split('?')[0]);
+           alert("Payment Cancelled.");
+      }
+  }, [user]);
 
   useEffect(() => {
     // Consolidated data fetching
@@ -742,7 +753,8 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
         // Save as pending and ask to login
         sessionStorage.setItem('pendingBooking', JSON.stringify(jobData));
         setPendingBooking(jobData);
-        setCurrentView('rides'); // Show in rides tab as draft
+        // Force Registration/Login immediately
+        setShowAuthModal(true);
         return;
     }
 
@@ -830,32 +842,14 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
   };
   
   const handlePaymentSuccess = async () => {
-      if (paymentModalData) {
-          // 1. Get Integration Config to check if Stripe is enabled
-          const config = await backend.getIntegrations();
-          
-          if (config.stripePublishableKey && config.stripeSecretKey) {
-             // 2. Initiate Stripe Checkout (Simulated)
-             await mockBackend.initiateStripeCheckout(paymentModalData.jobId, paymentModalData.amount);
-             
-             // Simulate successful payment and redirect back
-             alert("Redirecting to Stripe Checkout...\n(Simulated Payment Success)");
-             await backend.acceptBid(paymentModalData.jobId, paymentModalData.bidId);
-             
-             // Add Payment Transaction
-             await mockBackend.updateJobStatus(paymentModalData.jobId, JobStatus.ACCEPTED);
-             setToast({ message: "Payment Successful! Driver Booked.", type: 'success' });
-          } else {
-             // Fallback
-             await mockBackend.acceptBid(paymentModalData.jobId, paymentModalData.bidId);
-             setToast({ message: t('offer_accepted'), type: 'success' });
-          }
-          
-          setPaymentModalData(null);
-          loadJobs();
-          setRidesFilter('UPCOMING');
-      }
-  };
+        if (paymentModalData) {
+            // Initiate Real Stripe Checkout
+            await backend.initiateStripeCheckout(paymentModalData.jobId, paymentModalData.amount);
+            
+            // Note: The code below won't run if redirect happens successfully
+            setPaymentModalData(null);
+        }
+    };
 
   const handleLoginSuccess = (u: User) => {
       onLogin(u);
@@ -1363,14 +1357,14 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user, onLogin,
                 <div className="flex items-center justify-between py-1">
                     <div className="flex items-center gap-3">
                         <Icons.Briefcase className="w-5 h-5 text-slate-400" />
-                        <span className="text-slate-700 dark:text-slate-300 font-medium">{t('how_many_luggage')}</span>
+                        <span className="text-slate-700 dark:text-slate-300 font-medium"># Luggages?</span>
                     </div>
                     <Counter value={formData.luggage} onChange={v => setFormData(prev => ({...prev, luggage: v}))} />
                 </div>
                 <div className="flex items-center justify-between py-1">
                     <div className="flex items-center gap-3">
                         <Icons.ShoppingBag className="w-5 h-5 text-slate-400" />
-                        <span className="text-slate-700 dark:text-slate-300 font-medium">{t('how_many_carry_on')}</span>
+                        <span className="text-slate-700 dark:text-slate-300 font-medium"># Carry-on bags?</span>
                     </div>
                     <Counter value={formData.carryOn} onChange={v => setFormData(prev => ({...prev, carryOn: v}))} />
                 </div>

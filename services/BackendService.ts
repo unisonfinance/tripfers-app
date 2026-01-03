@@ -261,9 +261,57 @@ class BackendService {
                 throw new Error("Unauthorized: Account creation restricted.");
             }
 
-            const result = await createUserWithEmailAndPassword(auth, email, password);
-            const newUser: User = {
-                id: result.user.uid,
+            // IMPORTANT: Create user without automatically signing them in if the current user is an admin
+            // This prevents the admin from being logged out when creating a partner account
+            
+            // Check if we are currently logged in as ADMIN
+            const currentUser = auth.currentUser;
+            const isCreatingPartnerAsAdmin = currentUser && role === UserRole.AGENCY;
+
+            let newUser: User;
+            let uid: string;
+
+            if (isCreatingPartnerAsAdmin) {
+                // Secondary App initialization workaround to create user without signing out current user
+                // However, Firebase Client SDK doesn't support this easily without a second app instance.
+                // For a simpler approach in this SPA:
+                // We will use a temporary workaround: Create the user, then immediately sign the admin back in? 
+                // No, that requires the admin password.
+                
+                // Better approach for Client SDK: 
+                // We cannot create a user without signing in as them in the Client SDK.
+                // The proper way is to use a Callable Cloud Function `createPartnerAccount`.
+                // BUT, since we are doing client-side only for now:
+                
+                // We will throw an error if they try to do this without a Cloud Function, 
+                // OR we accept that it logs them out and switches to the new user (which is what the user complained about).
+                
+                // FIX: We will create a specialized "invitePartner" method that uses a secondary Firebase App instance 
+                // to avoid disrupting the main auth session.
+                
+                // Dynamic Import to avoid top-level side effects if possible, or just standard initializeApp
+                const { initializeApp } = await import("firebase/app");
+                const { getAuth, createUserWithEmailAndPassword: createAuthUser } = await import("firebase/auth");
+                const { firebaseConfig } = await import("./firebase"); // We need to export firebaseConfig from firebase.ts
+                
+                // Initialize a secondary app
+                const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+                const secondaryAuth = getAuth(secondaryApp);
+                
+                const result = await createAuthUser(secondaryAuth, email, password);
+                uid = result.user.uid;
+                
+                // Clean up secondary app (optional, but good practice)
+                // secondaryApp.delete(); // delete() is async, might need to wait or ignore
+                
+            } else {
+                // Standard flow (Self-registration)
+                const result = await createUserWithEmailAndPassword(auth, email, password);
+                uid = result.user.uid;
+            }
+
+            newUser = {
+                id: uid,
                 name, email, role,
                 status: role === UserRole.DRIVER ? UserStatus.PENDING_VERIFICATION : UserStatus.ACTIVE,
                 rating: 5.0,
@@ -274,10 +322,16 @@ class BackendService {
                 totalTrips: 0,
                 balance: 0,
                 totalEarnings: 0,
-                serviceZones: [] // Ensure serviceZones initialized
+                serviceZones: [] 
             };
+            
             await setDoc(doc(db, 'users', newUser.id), newUser);
-            this.currentUser = newUser;
+            
+            // Only update local state if we are NOT an admin creating a partner
+            if (!isCreatingPartnerAsAdmin) {
+                this.currentUser = newUser;
+            }
+            
             return newUser;
         } catch (error) {
             console.error("Register failed:", error);
@@ -361,27 +415,71 @@ class BackendService {
             const job = this.jobs.find(j => j.id === jobId);
             if (job && job.driverId && job.price) {
                 const driver = this.users.find(u => u.id === job.driverId);
+                const agencyId = (job as any).agencyId;
+                
+                // 1. Calculate Standard Commission (e.g. 29.5%)
+                const platformCommissionRate = this.pricing.commissionRate || 0.295;
+                const platformCommission = job.price * platformCommissionRate;
+                const driverNet = job.price - platformCommission;
+
                 if (driver) {
-                    const commission = job.price * (this.pricing.commissionRate || 0.295); 
-                    const net = job.price - commission;
-                    
                     // Update Driver Balance
                     await updateDoc(doc(db, 'users', driver.id), {
-                        balance: (driver.balance || 0) + net,
-                        totalEarnings: (driver.totalEarnings || 0) + net,
+                        balance: (driver.balance || 0) + driverNet,
+                        totalEarnings: (driver.totalEarnings || 0) + driverNet,
                         totalTrips: (driver.totalTrips || 0) + 1
                     });
 
-                    // Log Transaction
+                    // Log Driver Transaction
                     await addDoc(collection(db, 'transactions'), {
-                        userId: 'system',
-                        type: 'COMMISSION',
-                        amount: commission,
+                        userId: driver.id,
+                        type: 'EARNING',
+                        amount: driverNet,
                         status: 'SUCCESS',
                         date: new Date().toISOString(),
-                        description: `Commission for Trip #${job.id}`
+                        description: `Earnings for Trip #${job.id.substring(0,8)}`
                     });
                 }
+                
+                // 2. Handle Partner Commission (if applicable)
+                if (agencyId) {
+                    const agency = this.users.find(u => u.id === agencyId);
+                    if (agency && agency.agencySettings) {
+                        // Partner gets a cut of the platform commission (or a fixed % of trip)
+                        // Typically: 5% of Total Trip Price
+                        const partnerRate = agency.agencySettings.commissionRate || 0.05;
+                        const partnerEarnings = job.price * partnerRate;
+                        
+                        // Update Partner Balance
+                        await updateDoc(doc(db, 'users', agencyId), {
+                            balance: (agency.balance || 0) + partnerEarnings,
+                            totalEarnings: (agency.totalEarnings || 0) + partnerEarnings
+                        });
+                        
+                        // Log Partner Transaction
+                        await addDoc(collection(db, 'transactions'), {
+                            userId: agencyId,
+                            type: 'COMMISSION',
+                            amount: partnerEarnings,
+                            status: 'SUCCESS',
+                            date: new Date().toISOString(),
+                            description: `Commission for Trip #${job.id.substring(0,8)}`
+                        });
+                        
+                        console.log(`[Commission] Paid Partner ${agency.name}: $${partnerEarnings}`);
+                    }
+                }
+
+                // Log Admin Revenue (Platform Commission - Partner Payout)
+                // This is just for logs, doesn't go to a specific wallet doc
+                await addDoc(collection(db, 'transactions'), {
+                    userId: 'system',
+                    type: 'REVENUE',
+                    amount: platformCommission,
+                    status: 'SUCCESS',
+                    date: new Date().toISOString(),
+                    description: `Platform Revenue for Trip #${job.id.substring(0,8)}`
+                });
             }
         }
         return this.jobs.find(j => j.id === jobId)!;
@@ -419,7 +517,72 @@ class BackendService {
             selectedBidId: bidId
         };
         await updateDoc(doc(db, 'bookings', jobId), updates);
+
+        // Notify Driver
+        await addDoc(collection(db, 'notifications'), {
+             userId: bid.driverId,
+             title: "Bid Accepted!",
+             message: `Your bid for trip from ${job.pickup} to ${job.dropoff || 'Hourly'} has been accepted. Waiting for payment.`,
+             type: 'INFO',
+             read: false,
+             createdAt: new Date().toISOString()
+        });
+        
+        // Notify Admin
+        await addDoc(collection(db, 'notifications'), {
+             targetRole: 'ADMIN',
+             title: "Bid Accepted",
+             message: `Client ${job.clientName} accepted bid from ${bid.driverName} for Job #${jobId.substring(0,8)}.`,
+             type: 'INFO',
+             read: false,
+             createdAt: new Date().toISOString()
+        });
+
         return { ...job, ...updates } as Job;
+    }
+
+    async markJobAsPaid(jobId: string) {
+        // Update Job
+        await updateDoc(doc(db, 'bookings', jobId), { 
+            paymentStatus: 'PAID',
+            isPaid: true
+        });
+        
+        const job = this.jobs.find(j => j.id === jobId);
+        if (job) {
+             // Notify Driver
+             if (job.driverId) {
+                 await addDoc(collection(db, 'notifications'), {
+                     userId: job.driverId,
+                     title: "Payment Received!",
+                     message: `Client has paid for Job #${jobId.substring(0,8)}. You can now proceed.`,
+                     type: 'SUCCESS',
+                     read: false,
+                     createdAt: new Date().toISOString()
+                });
+             }
+            
+            // Notify Admin
+            await addDoc(collection(db, 'notifications'), {
+                 targetRole: 'ADMIN',
+                 title: "Payment Received",
+                 message: `Payment received for Job #${jobId.substring(0,8)}.`,
+                 type: 'SUCCESS',
+                 read: false,
+                 createdAt: new Date().toISOString()
+            });
+
+            // Log Transaction
+            await addDoc(collection(db, 'transactions'), {
+                userId: job.clientId,
+                jobId: job.id,
+                type: 'PAYMENT',
+                amount: job.price || 0,
+                status: 'SUCCESS',
+                date: new Date().toISOString(),
+                description: `Payment for Trip #${job.id}`
+            });
+        }
     }
 
     // --- USERS ---
@@ -519,11 +682,44 @@ class BackendService {
              senderId, 
              senderName: sender?.name || 'User', 
              text, 
-             timestamp: new Date().toISOString()
+             timestamp: new Date().toISOString(),
+             reactions: {}
         };
         const messages = [...(job?.messages || []), msg];
         await updateDoc(doc(db, 'bookings', jobId), { messages });
         return msg;
+    }
+
+    async addReaction(jobId: string, messageId: string, userId: string, emoji: string) {
+        const job = this.jobs.find(j => j.id === jobId);
+        if (!job || !job.messages) return;
+
+        const messages = job.messages.map(msg => {
+            if (msg.id === messageId) {
+                const reactions = msg.reactions || {};
+                const users = reactions[emoji] || [];
+                
+                // Toggle reaction
+                let newUsers;
+                if (users.includes(userId)) {
+                    newUsers = users.filter(u => u !== userId);
+                } else {
+                    newUsers = [...users, userId];
+                }
+
+                // If no users left for this emoji, remove the key
+                if (newUsers.length === 0) {
+                    delete reactions[emoji];
+                } else {
+                    reactions[emoji] = newUsers;
+                }
+                
+                return { ...msg, reactions };
+            }
+            return msg;
+        });
+
+        await updateDoc(doc(db, 'bookings', jobId), { messages });
     }
 
     async getStats() {
@@ -543,53 +739,28 @@ class BackendService {
     }
 
     // --- STRIPE ---
-    async getIntegrations() { 
-        // 1. Try to fetch from Firestore settings
-        if (!this.integrations) {
-            try {
-                const docRef = await getDoc(doc(db, 'settings', 'integrations'));
-                if (docRef.exists()) {
-                    this.integrations = docRef.data() as IntegrationsConfig;
-                } else {
-                     // Fallback defaults and SAVE them so next time it exists
-                     this.integrations = { 
-                         primaryAdminEmail: 'jclott77@gmail.com',
-                         googleMapsKey: '', 
-                         googleGeminiKey: '',
-                         stripePublishableKey: '', 
-                         stripeSecretKey: '',
-                         flightAwareKey: '',
-                         adminMobileNumber: '',
-                         twilioAccountSid: '',
-                         twilioAuthToken: '',
-                         twilioMessagingServiceSid: '',
-                         twilioFromNumber: '',
-                         twilioEnabled: false,
-                         publicUrl: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
-                     };
-                     await setDoc(doc(db, 'settings', 'integrations'), this.integrations);
-                }
-            } catch (error) {
-                console.error("Error fetching integrations:", error);
-                // Return defaults on error to avoid breaking UI
-                return { 
-                     primaryAdminEmail: 'jclott77@gmail.com',
-                     googleMapsKey: '', 
-                     googleGeminiKey: '',
-                     stripePublishableKey: '', 
-                     stripeSecretKey: '',
-                     flightAwareKey: '',
-                     adminMobileNumber: '',
-                     twilioAccountSid: '',
-                     twilioAuthToken: '',
-                     twilioMessagingServiceSid: '',
-                     twilioFromNumber: '',
-                     twilioEnabled: false,
-                     publicUrl: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
-                 } as IntegrationsConfig;
+    async getIntegrations(): Promise<IntegrationsConfig> {
+        try {
+            const docRef = doc(db, 'settings', 'integrations');
+            const snap = await getDoc(docRef);
+            if (snap.exists()) {
+                return snap.data() as IntegrationsConfig;
             }
+            return {
+                googleMapsKey: '',
+                primaryAdminEmail: 'jclott77@gmail.com',
+                stripePublishableKey: '',
+                stripeSecretKey: '',
+                twilioAccountSid: '',
+                twilioAuthToken: '',
+                twilioFromNumber: '',
+                adminMobileNumber: '',
+                twilioEnabled: false
+            } as any;
+        } catch (e) {
+            console.error("Failed to fetch integrations", e);
+            return {} as any;
         }
-        return this.integrations; 
     }
 
     async updateIntegrations(config: IntegrationsConfig) {
@@ -597,17 +768,41 @@ class BackendService {
         await setDoc(doc(db, 'settings', 'integrations'), config);
     }
 
-    async initiateStripeCheckout(jobId: string, price: number): Promise<string> {
-        // In a real app, this calls a Cloud Function to create a Stripe Checkout Session.
-        // For this demo, we will simulate a successful payment flow.
+    async initiateStripeCheckout(jobId: string, price: number): Promise<void> {
+        const config = await this.getIntegrations();
         
+        // Use provided keys if not in config (Fallback for Demo)
+        const publishableKey = config.stripePublishableKey || 'pk_test_51SfFxpIXU7WLKiqXsKuv8CJDEdT9tpK5CQL0Yeu8dAL3A5auIItJ4Scr6mbOlZzbVDMttpbXbnLir29pPkwiyH0c00iy3T1e2m';
+
         console.log(`[Stripe] Initiating checkout for Job ${jobId} Amount: $${price}`);
         
-        // Simulating network delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Return a fake success URL for now to test the UI flow
-        return `${window.location.origin}/payment-success?jobId=${jobId}`;
+        try {
+            const createStripeSession = httpsCallable(functions, 'createStripeSession');
+            
+            // Call Cloud Function
+            const { data }: any = await createStripeSession({
+                jobId,
+                price,
+                successUrl: `${window.location.origin}/#/dashboard/client?payment_success=true&jobId=${jobId}`,
+                cancelUrl: `${window.location.origin}/#/dashboard/client?payment_cancel=true`,
+                customerEmail: this.currentUser?.email,
+                customerName: this.currentUser?.name
+            });
+
+            if (!data || !data.sessionId) {
+                throw new Error("Failed to create Stripe Session");
+            }
+
+            const stripe = await loadStripe(publishableKey);
+            if (stripe) {
+                const { error } = await stripe.redirectToCheckout({ sessionId: data.sessionId });
+                if (error) throw error;
+            }
+        } catch (error) {
+            console.error("Stripe Checkout Error:", error);
+            alert("Payment initiation failed. Please try again.");
+            throw error;
+        }
     }
     async getAuditLogs() { return this.auditLogs; }
     async getAdminBadgeSettings() { 
@@ -640,6 +835,8 @@ class BackendService {
                 loginFormImageUrl: '',
                 mainSiteLogoUrl: '',
                 mainSiteLogoDarkUrl: '',
+                partnerFaviconUrl: '',
+                partnerLogoUrl: '',
                 logoHeight: 32, // Default 32px (h-8)
                 logoMarginLeft: 0,
                 logoMarginTop: 0,

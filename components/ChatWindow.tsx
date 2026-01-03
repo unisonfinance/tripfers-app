@@ -82,8 +82,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ jobId, currentUser, othe
 
   useEffect(() => {
     loadMessages();
-    const interval = setInterval(loadMessages, 3000);
-    return () => clearInterval(interval);
+    const unsubscribe = backend.subscribe(loadMessages);
+    return () => unsubscribe();
   }, [jobId]);
 
   useEffect(() => {
@@ -121,6 +121,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ jobId, currentUser, othe
     setShowEmojiPicker(false); // Close picker after sending emoji
   };
 
+  const handleReaction = async (messageId: string, emoji: string) => {
+    await backend.addReaction(jobId, messageId, currentUser.id, emoji);
+    // No need to loadMessages manually as subscription handles it, but for instant feedback:
+    // loadMessages(); 
+  };
+
   return (
     <div className="flex flex-col h-full rounded-xl shadow-inner overflow-hidden border border-slate-200 dark:border-slate-700">
       <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center flex-shrink-0">
@@ -136,26 +142,70 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ jobId, currentUser, othe
       <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-100 dark:bg-slate-950 no-scrollbar">
         {messages.map(msg => {
           const isMe = !isReadOnly && msg.senderId === currentUser.id;
-          const isReaction = ALL_EMOJIS.includes(msg.text) && msg.text.length === 1; // Check if it's a single emoji
+          // Safer Emoji Check (Regex for common emoji ranges)
+          const emojiRegex = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/;
+          const isSingleEmoji = (emojiRegex.test(msg.text) && msg.text.length <= 4) || (ALL_EMOJIS.includes(msg.text) && msg.text.length <= 4);
 
           return (
-            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[70%] md:max-w-[60%] px-3 py-2 text-sm break-words
-                  ${isMe 
-                    ? (isReaction ? 'bg-transparent' : 'bg-red-600 text-white rounded-xl rounded-br-none') 
-                    : (isReaction ? 'bg-transparent' : 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl rounded-bl-none shadow-sm')
-                  }
-                  ${isReaction ? 'text-4xl' : ''}
-              `}>
-                {!isReaction && isReadOnly && <div className="text-xs text-slate-400 font-bold mb-1">{msg.senderName}</div>}
-                
-                <span>{msg.text}</span>
+            <div key={msg.id} className={`group relative flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+              <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} w-full`}>
+                  <div className={`max-w-[70%] md:max-w-[60%] px-3 py-2 text-sm break-words relative
+                      ${isMe 
+                        ? (isSingleEmoji ? 'bg-transparent' : 'bg-red-600 text-white rounded-xl rounded-br-none') 
+                        : (isSingleEmoji ? 'bg-transparent' : 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl rounded-bl-none shadow-sm')
+                      }
+                      ${isSingleEmoji ? 'text-4xl' : ''}
+                  `}>
+                    {!isSingleEmoji && isReadOnly && <div className="text-xs text-slate-400 font-bold mb-1">{msg.senderName}</div>}
+                    
+                    <span>{msg.text}</span>
 
-                {!isReaction && (
-                    <div className={`text-[10px] mt-1 ${isMe ? 'text-red-200' : 'text-slate-400'}`}>
-                    {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </div>
-                )}
+                    {!isSingleEmoji && (
+                        <div className={`text-[10px] mt-1 ${isMe ? 'text-red-200' : 'text-slate-400'}`}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
+                    )}
+                    
+                    {/* Reactions Display */}
+                    {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                        <div className={`absolute -bottom-3 ${isMe ? 'right-0' : 'left-0'} flex gap-1 bg-white dark:bg-slate-800 rounded-full px-1.5 py-0.5 shadow-sm border border-slate-100 dark:border-slate-700`}>
+                            {Object.entries(msg.reactions).map(([emoji, users]) => (
+                                <button 
+                                    key={emoji}
+                                    onClick={() => !isReadOnly && handleReaction(msg.id, emoji)}
+                                    className={`text-xs hover:bg-slate-100 dark:hover:bg-slate-700 rounded px-1 ${users.includes(currentUser.id) ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-100' : ''}`}
+                                    title={`${users.length} reaction(s)`}
+                                >
+                                    {emoji} <span className="text-[10px] font-bold text-slate-500">{users.length > 1 ? users.length : ''}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                  </div>
+                  
+                  {/* Quick Reaction Button (Hover) */}
+                  {!isReadOnly && (
+                      <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex items-center px-2 ${isMe ? 'order-first' : 'order-last'}`}>
+                          <button 
+                            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-200/50 dark:bg-slate-800/50 rounded-full"
+                            onClick={(e) => {
+                                // Show mini picker
+                                e.stopPropagation();
+                                handleReaction(msg.id, '👍'); // Quick like for now, or open picker
+                            }}
+                          >
+                              <span className="text-xs">👍</span>
+                          </button>
+                          <button 
+                            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-200/50 dark:bg-slate-800/50 rounded-full ml-1"
+                            onClick={(e) => {
+                                handleReaction(msg.id, '❤️');
+                            }}
+                          >
+                              <span className="text-xs">❤️</span>
+                          </button>
+                      </div>
+                  )}
               </div>
             </div>
           );

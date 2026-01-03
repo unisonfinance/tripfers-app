@@ -88,8 +88,9 @@ export const Landing: React.FC<LandingProps> = ({ onLogin }) => {
   }, [fromAddress, toAddress, fromCoords, toCoords]);
 
 
-  const initiateLogin = (role: UserRole | null) => {
+  const initiateLogin = (role: UserRole | null, message?: string) => {
     setAuthInitialRole(role || UserRole.CLIENT);
+    setAuthMessage(message);
     setShowAuthModal(true);
   };
 
@@ -110,8 +111,8 @@ export const Landing: React.FC<LandingProps> = ({ onLogin }) => {
     };
     sessionStorage.setItem('pendingBooking', JSON.stringify(pendingBooking));
     
-    // Trigger login
-    initiateLogin(UserRole.CLIENT);
+    // Trigger login with custom message
+    initiateLogin(UserRole.CLIENT, "You are one step way to get your first trip bid! Register now to see your bids and check - manage - cancell your trips in real time.");
   };
 
   const getPrice = (dist: number, type: string) => {

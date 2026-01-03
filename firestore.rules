@@ -44,12 +44,24 @@ service cloud.firestore {
     } 
 
     match /settings/{document=**} { 
-      allow read, write: if true; 
-    } 
+       allow read, write: if true; 
+     } 
 
-    match /promo_codes/{codeId} { 
-      allow read, write: if true; 
-    } 
+     match /api_keys/{keyId} {
+       allow read, write: if true;
+     }
+
+     match /webhooks/{webhookId} {
+       allow read, write: if true;
+     }
+
+     match /partner_logs/{logId} {
+       allow read, write: if true;
+     }
+
+     match /promo_codes/{codeId} { 
+       allow read, write: if true; 
+     } 
 
     match /audit_logs/{logId} { 
       allow read, write: if true; 

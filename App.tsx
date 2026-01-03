@@ -4,8 +4,11 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from './components/Layout';
 import { ClientDashboard } from './pages/ClientDashboard';
 import { DriverDashboard } from './pages/DriverDashboard';
+import { AgencyDashboard } from './pages/AgencyDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { PartnerLogin } from './components/PartnerLogin';
 import { MembershipSuccess } from './pages/MembershipSuccess';
+
 import { User, UserRole, UserStatus } from './types';
 import { backend } from './services/BackendService';
 import './i18n'; // Initialize i18n
@@ -26,15 +29,24 @@ function App() {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    // Check local storage for theme
-    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setIsDark(true);
-      document.documentElement.classList.add('dark');
-    } else {
-      setIsDark(false);
-      document.documentElement.classList.remove('dark');
+    // Check local storage for theme - Default to LIGHT if not set
+    try {
+        if (localStorage.theme === 'dark') {
+            setIsDark(true);
+            document.documentElement.classList.add('dark');
+        } else {
+            // Default to Light
+            setIsDark(false);
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        }
+    } catch (e) {
+        // Fallback for private mode or errors
+        setIsDark(false);
+        document.documentElement.classList.remove('dark');
     }
 
+    // FORCE ADMIN LOGIN REMOVED - Using Real Auth Flow
     const storedUser = backend.getCurrentUser();
     if (storedUser) {
       setUser(storedUser);
@@ -153,121 +165,103 @@ function App() {
   // --- SUBDOMAIN ROUTING LOGIC ---
   const hostname = window.location.hostname;
   
-  // STRICT: Only 'admin.tripfers.com' is the Admin Portal
-  // Localhost is treated as MAIN domain to allow testing all roles
-  const isAdminDomain = hostname.startsWith('admin.'); 
+  // STRICT: Routing based on subdomains
+  const isAdminDomain = hostname.startsWith('admin.');
+  const isPartnerDomain = hostname.startsWith('partners.'); 
   const isLocalhost = hostname.includes('localhost') || hostname.includes('127.0.0.1');
 
-  console.log(`[App] Current Hostname: ${hostname} | Detected Mode: ${isAdminDomain ? 'ADMIN' : 'CLIENT'} | Localhost: ${isLocalhost}`);
+  console.log(`[App] Host: ${hostname} | Admin: ${isAdminDomain} | Partner: ${isPartnerDomain} | Local: ${isLocalhost}`);
 
   // Dynamic Favicon Switcher
   useEffect(() => {
     const updateFavicon = (url: string) => {
       if (!url) return;
-      
       // Add timestamp to bust cache
       const cacheBustedUrl = `${url}${url.includes('?') ? '&' : '?'}v=${new Date().getTime()}`;
       
-      // Remove existing icons to force browser update
-      const selectors = [
-        "link[rel*='icon']",
-        "link[rel='shortcut icon']",
-        "link[rel='apple-touch-icon']",
-        "link[rel='mask-icon']"
-      ];
-      
-      selectors.forEach(selector => {
-        document.querySelectorAll(selector).forEach(link => link.remove());
-      });
+      const selectors = ["link[rel*='icon']", "link[rel='shortcut icon']", "link[rel='apple-touch-icon']", "link[rel='mask-icon']"];
+      selectors.forEach(selector => document.querySelectorAll(selector).forEach(link => link.remove()));
 
-      // Create new main favicon
       const linkIcon = document.createElement('link');
       linkIcon.rel = 'icon';
       linkIcon.type = url.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
       linkIcon.href = cacheBustedUrl;
       document.head.appendChild(linkIcon);
-
-      // Create apple touch icon
-      const linkApple = document.createElement('link');
-      linkApple.rel = 'apple-touch-icon';
-      linkApple.href = cacheBustedUrl;
-      document.head.appendChild(linkApple);
-
-      // Log for debugging
-      console.log(`Favicon updated to: ${url}`);
     };
 
     const applyBranding = async () => {
         let mainFavicon = '/favicon.png';
         let adminFavicon = '/favicon_admin.png';
+        let partnerFavicon = '/favicon.png'; // Default to main if not set
 
         try {
             if (backend.getBrandingSettings) {
                 const settings = await backend.getBrandingSettings();
-                if (settings.mainFaviconUrl && settings.mainFaviconUrl.trim() !== '') {
-                    mainFavicon = settings.mainFaviconUrl;
-                }
-                if (settings.adminFaviconUrl && settings.adminFaviconUrl.trim() !== '') {
-                    adminFavicon = settings.adminFaviconUrl;
-                }
+                if (settings.mainFaviconUrl?.trim()) mainFavicon = settings.mainFaviconUrl;
+                if (settings.adminFaviconUrl?.trim()) adminFavicon = settings.adminFaviconUrl;
+                if (settings.partnerFaviconUrl?.trim()) partnerFavicon = settings.partnerFaviconUrl;
             }
-        } catch (e) {
-            console.warn("Failed to load branding settings", e);
-        }
+        } catch (e) { console.warn("Failed to load branding settings", e); }
 
-        let useAdminBranding = isAdminDomain;
-
-        // In development (localhost), toggle branding based on the active user role
-        // This allows testing both favicons without changing domains
-        if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
-            useAdminBranding = user?.role === UserRole.ADMIN;
-        }
-
-        if (useAdminBranding) {
+        if (isAdminDomain || (isLocalhost && user?.role === UserRole.ADMIN)) {
             updateFavicon(adminFavicon);
             document.title = 'Tripfers Admin Portal';
+        } else if (isPartnerDomain) {
+            updateFavicon(partnerFavicon);
+            document.title = 'Tripfers Partner Portal';
         } else {
             updateFavicon(mainFavicon);
-            // Optional: Set a default title for the main site if needed
-             if (document.title === 'Tripfers Admin Portal') document.title = 'Tripfers';
+            if (document.title === 'Tripfers Admin Portal' || document.title === 'Tripfers Partner Portal') document.title = 'Tripfers';
         }
     };
-
     applyBranding();
-    
-    // Subscribe to backend changes to update favicon in real-time
     const unsubscribe = backend.subscribe(applyBranding);
     return () => unsubscribe();
-  }, [isAdminDomain, user]); // Added user dependency to update on role switch
+  }, [isAdminDomain, isPartnerDomain, user]);
 
   return (
     <Router>
       <Routes>
         {/* ------------------------------------------------------------
-            ADMIN SUBDOMAIN ROUTING (admin.tripfers.com)
+            ADMIN SUBDOMAIN (admin.tripfers.com)
             ------------------------------------------------------------ */}
         {isAdminDomain ? (
            <>
               <Route path="/" element={
-                  user?.role === UserRole.ADMIN ? (
-                    <AdminDashboard />
-                  ) : (
+                  user?.role === UserRole.ADMIN ? <AdminDashboard /> :
+                  <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>
+                    <ClientDashboard user={null} onLogin={handleLogin} initialRole={UserRole.ADMIN} />
+                  </Layout>
+              } />
+              <Route path="*" element={<Navigate to="/" replace />} />
+           </>
+        ) : isPartnerDomain ? (
+        /* ------------------------------------------------------------
+           PARTNER SUBDOMAIN (partners.tripfers.com)
+           ------------------------------------------------------------ */
+           <>
+              <Route path="/" element={
+                  user?.role === UserRole.AGENCY ? (
                     <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>
-                      <ClientDashboard user={null} onLogin={handleLogin} initialRole={UserRole.ADMIN} />
+                        <AgencyDashboard user={user} />
                     </Layout>
+                  ) : (
+                    <PartnerLogin onLogin={handleLogin} />
                   )
               } />
               <Route path="*" element={<Navigate to="/" replace />} />
            </>
         ) : (
           /* ------------------------------------------------------------
-             MAIN DOMAIN ROUTING (tripfers.com)
+             MAIN DOMAIN (tripfers.com)
              ------------------------------------------------------------ */
            <>
               <Route path="/" element={
+                  user?.role === UserRole.ADMIN ? <AdminDashboard /> :
                   <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>
                     {!user ? <ClientDashboard user={null} onLogin={handleLogin} /> : 
                     user.role === UserRole.DRIVER ? <Navigate to="/dashboard/driver" /> :
+                    user.role === UserRole.AGENCY ? <Navigate to="/dashboard/agency" /> :
                     <ClientDashboard user={user} onLogin={handleLogin} />
                     }
                   </Layout>
@@ -285,19 +279,30 @@ function App() {
                   </Layout>
               } />
 
-              {/* Redirect /admin to subdomain if accessed from main site, unless localhost */}
+              <Route path="/dashboard/agency" element={
+                  <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>
+                    {user?.role === UserRole.AGENCY ? <AgencyDashboard user={user} /> : <Navigate to="/" />}
+                  </Layout>
+              } />
+
+              {/* Redirects to Subdomains (Production Only) */}
               <Route path="/admin" element={
                   isLocalhost ? (
-                      user?.role === UserRole.ADMIN ? (
-                        <AdminDashboard />
-                      ) : (
-                        <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>
+                      user?.role === UserRole.ADMIN ? <AdminDashboard /> : 
+                      <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>
                           <ClientDashboard user={null} onLogin={handleLogin} initialRole={UserRole.ADMIN} />
-                        </Layout>
-                      )
-                  ) : (
-                      <NavigateExternal to="https://admin.tripfers.com" />
-                  )
+                      </Layout>
+                  ) : <NavigateExternal to="https://admin.tripfers.com" />
+              } />
+              
+              <Route path="/partners" element={
+                  isLocalhost ? (
+                      user?.role === UserRole.AGENCY ? 
+                      <Layout user={user} onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark}>
+                          <AgencyDashboard user={user} />
+                      </Layout> : 
+                      <PartnerLogin onLogin={handleLogin} />
+                  ) : <NavigateExternal to="https://partners.tripfers.com" />
               } />
 
               <Route path="/membership-success" element={

@@ -295,6 +295,233 @@ const TripsView = ({ jobs, onSelectJob, badgeSettings }: any) => {
     );
 };
 
+const PartnersView = () => {
+    const [partners, setPartners] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [viewMode, setViewMode] = useState<'LIST' | 'CONFIG'>('LIST');
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [newPartner, setNewPartner] = useState({ name: '', email: '', companyName: '', password: '' });
+
+    const fetchPartners = () => {
+        backend.getAllUsers().then(allUsers => {
+            setPartners(allUsers.filter(u => u.role === UserRole.AGENCY));
+            setLoading(false);
+        });
+    };
+
+    useEffect(() => {
+        fetchPartners();
+    }, []);
+
+    const handleInvite = async () => {
+        if (!newPartner.email || !newPartner.password || !newPartner.name) return;
+        try {
+            await backend.register(newPartner.email, newPartner.password, newPartner.name, UserRole.AGENCY);
+            // We need to find the user we just created to update their agency settings
+            // For now, let's just refresh the list, the backend.register adds to the local list in BackendService mock
+            // In real app, we'd want to update the 'agencySettings' field immediately.
+            
+            // Re-fetch to get the new ID
+            const users = await backend.getAllUsers();
+            const createdUser = users.find(u => u.email === newPartner.email);
+            
+            if (createdUser) {
+                await backend.adminUpdateUserInfo(createdUser.id, {
+                    agencySettings: {
+                        companyName: newPartner.companyName,
+                        commissionRate: 0.05, // Default 5%
+                        apiKey: '',
+                        webhookUrl: ''
+                    }
+                });
+            }
+            
+            setShowInviteModal(false);
+            setNewPartner({ name: '', email: '', companyName: '', password: '' });
+            fetchPartners();
+            alert("Partner invited successfully!");
+        } catch (e: any) {
+            alert("Error inviting partner: " + e.message);
+        }
+    };
+
+    return (
+        <div className="space-y-8 animate-fade-in">
+            {/* Header Stats for Partners */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                            <Icons.Briefcase className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Partners</p>
+                            <h3 className="text-2xl font-black text-slate-900 dark:text-white">{partners.length}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                            <Icons.DollarSign className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Commission Generated</p>
+                            <h3 className="text-2xl font-black text-slate-900 dark:text-white">$0.00</h3>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400">
+                            <Icons.Code className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">API Requests</p>
+                            <h3 className="text-2xl font-black text-slate-900 dark:text-white">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
+                    <div>
+                        <h3 className="font-black text-xl text-slate-900 dark:text-white tracking-tight">Partner Directory</h3>
+                        <p className="text-sm text-slate-400 font-medium">Manage B2B relationships and integrations</p>
+                    </div>
+                    <button 
+                        onClick={() => setShowInviteModal(true)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2"
+                    >
+                        <Icons.User className="w-4 h-4" /> Invite Partner
+                    </button>
+                </div>
+                
+                <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm text-left">
+                        <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+                            <tr>
+                                <th className="px-8 py-5">Company Name</th>
+                                <th className="px-8 py-5">Contact</th>
+                                <th className="px-8 py-5">Commission</th>
+                                <th className="px-8 py-5">Integration</th>
+                                <th className="px-8 py-5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                            {partners.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-8 py-20 text-center text-slate-400 font-medium italic">
+                                        No partners found. Invite travel agencies to get started.
+                                    </td>
+                                </tr>
+                            ) : (
+                                partners.map(p => (
+                                    <tr key={p.id} className="group hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                        <td className="px-8 py-5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 font-bold">
+                                                    {p.agencySettings?.companyName?.charAt(0) || p.name?.charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold text-slate-900 dark:text-white">{p.agencySettings?.companyName || 'Unnamed Agency'}</div>
+                                                    <div className="text-xs text-slate-400">ID: {p.id.slice(0,8)}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-5">
+                                            <div className="font-medium text-slate-700 dark:text-slate-300">{p.name}</div>
+                                            <div className="text-xs text-slate-500">{p.email}</div>
+                                        </td>
+                                        <td className="px-8 py-5">
+                                            <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-bold">
+                                                {(p.agencySettings?.commissionRate || 0.05) * 100}%
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-5">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`w-2 h-2 rounded-full ${p.agencySettings?.apiKey ? 'bg-green-500' : 'bg-slate-300'}`}></span>
+                                                <span className="text-xs font-bold text-slate-500">{p.agencySettings?.apiKey ? 'Active API' : 'No Integration'}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-5 text-right">
+                                            <button className="text-indigo-600 hover:text-indigo-800 font-bold text-xs">Manage</button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Invite Modal */}
+            {showInviteModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up border border-slate-200 dark:border-slate-700">
+                        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                            <h3 className="font-bold text-lg dark:text-white">Invite New Partner</h3>
+                            <button onClick={() => setShowInviteModal(false)} className="text-slate-400 hover:text-slate-600"><Icons.X className="w-5 h-5"/></button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Company Name</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl"
+                                    value={newPartner.companyName}
+                                    onChange={e => setNewPartner({...newPartner, companyName: e.target.value})}
+                                    placeholder="e.g. Hilton London"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Contact Name</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl"
+                                    value={newPartner.name}
+                                    onChange={e => setNewPartner({...newPartner, name: e.target.value})}
+                                    placeholder="e.g. John Doe"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email Address</label>
+                                <input 
+                                    type="email" 
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl"
+                                    value={newPartner.email}
+                                    onChange={e => setNewPartner({...newPartner, email: e.target.value})}
+                                    placeholder="partner@hotel.com"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Temporary Password</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl"
+                                    value={newPartner.password}
+                                    onChange={e => setNewPartner({...newPartner, password: e.target.value})}
+                                    placeholder="Generate or type password"
+                                />
+                            </div>
+                            <div className="pt-4">
+                                <button 
+                                    onClick={handleInvite}
+                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-600/20"
+                                >
+                                    Create Partner Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const DisputesView = ({ jobs, onResolve }: any) => (
     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
         <h3 className="font-bold text-lg mb-4 dark:text-white">Active Disputes</h3>
@@ -503,6 +730,8 @@ const SettingsView = ({
         loginFormImageUrl: brandingSettings?.loginFormImageUrl || '',
         mainSiteLogoUrl: brandingSettings?.mainSiteLogoUrl || '',
         mainSiteLogoDarkUrl: brandingSettings?.mainSiteLogoDarkUrl || '',
+        partnerFaviconUrl: brandingSettings?.partnerFaviconUrl || '',
+        partnerLogoUrl: brandingSettings?.partnerLogoUrl || '',
         logoHeight: brandingSettings?.logoHeight || 32,
         logoMarginLeft: brandingSettings?.logoMarginLeft || 0,
         logoMarginTop: brandingSettings?.logoMarginTop || 0,
@@ -633,6 +862,42 @@ const SettingsView = ({
                                     />
                                 </div>
                                 <p className="text-[10px] text-slate-400 mt-1">Logo for dark background (Dark Theme).</p>
+                            </div>
+
+                            {/* PARTNER PORTAL LOGO */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Partner Portal Logo URL</label>
+                                <div className="flex gap-2 items-center">
+                                    {localBranding.partnerLogoUrl && (
+                                        <img src={localBranding.partnerLogoUrl} alt="Preview Partner" className="w-auto h-9 p-1 bg-slate-50 rounded border border-slate-200 object-contain" />
+                                    )}
+                                    <input 
+                                        type="text" 
+                                        value={localBranding.partnerLogoUrl || ''}
+                                        onChange={e => setLocalBranding({...localBranding, partnerLogoUrl: e.target.value})}
+                                        className="flex-1 p-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-blue-500 dark:text-white"
+                                        placeholder="https://example.com/partner-logo.png"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-1">Logo displayed on the Partner Portal.</p>
+                            </div>
+
+                             {/* PARTNER PORTAL FAVICON */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Partner Portal Favicon URL</label>
+                                <div className="flex gap-2 items-center">
+                                    {localBranding.partnerFaviconUrl && (
+                                        <img src={localBranding.partnerFaviconUrl} alt="Preview Favicon" className="w-9 h-9 p-1 bg-white rounded border border-slate-200 object-contain" />
+                                    )}
+                                    <input 
+                                        type="text" 
+                                        value={localBranding.partnerFaviconUrl || ''}
+                                        onChange={e => setLocalBranding({...localBranding, partnerFaviconUrl: e.target.value})}
+                                        className="flex-1 p-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg outline-none focus:border-blue-500 dark:text-white"
+                                        placeholder="https://example.com/partner-favicon.png"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-1">Favicon for the Partner Portal browser tab.</p>
                             </div>
                         </div>
 
@@ -1444,7 +1709,7 @@ const SupportView = ({ settings, onUpdate, onBack }: { settings: SupportSettings
 };
 
 export const AdminDashboard: React.FC = () => {
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'partners' | 'pricing' | 'mats' | 'support' | 'disputes' | 'marketing' | 'broadcast' | 'integrations' | 'settings'>('dashboard');
     const [stats, setStats] = useState<any>(null);
     const [users, setUsers] = useState<User[]>([]);
     const [jobs, setJobs] = useState<Job[]>([]);
@@ -1484,9 +1749,13 @@ export const AdminDashboard: React.FC = () => {
 
     // Modals
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [userToDelete, setUserToDelete] = useState<User | null>(null);
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-    const [filterRole, setFilterRole] = useState<'ALL' | 'DRIVER' | 'CLIENT'>('ALL'); // Added Filter State
+    const [filterRole, setFilterRole] = useState<'ALL' | 'DRIVER' | 'CLIENT' | 'AGENCY'>('ALL'); // Added Filter State
     const adminUser = backend.getCurrentUser(); // Assuming admin is logged in.
+    
+    // VERSION INDICATOR FOR DEBUGGING
+    const ADMIN_VERSION = "v2.1.0 (Live Fixes)";
 
     // FIX: Keep selectedUser and selectedJob in sync with real-time updates
     useEffect(() => {
@@ -1695,8 +1964,8 @@ export const AdminDashboard: React.FC = () => {
                             <Icons.Shield className="w-5 h-5 text-white" />
                         </div>
                         <div className="flex flex-col">
-                            {/* Logo Text Removed */}
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Admin Portal</span>
+                            <span className="font-black text-xl text-slate-900 dark:text-white tracking-tighter">Admin<span className="text-red-600">Portal</span></span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">System Active</span>
                         </div>
                     </div>
                 </div>
@@ -1733,6 +2002,12 @@ export const AdminDashboard: React.FC = () => {
                                 onClick={() => handleTabChange('users')} 
                                 icon={Icons.Users} 
                                 label="Users" 
+                            />
+                            <NavItem 
+                                active={activeTab === 'partners'} 
+                                onClick={() => handleTabChange('partners')} 
+                                icon={Icons.Briefcase} 
+                                label="Partners" 
                             />
                             <NavItem 
                                 active={activeTab === 'disputes'} 
@@ -1809,6 +2084,7 @@ export const AdminDashboard: React.FC = () => {
                         <div className="flex flex-col min-w-0">
                             <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{adminUser?.name || 'Administrator'}</span>
                             <span className="text-[10px] font-bold text-slate-400 uppercase truncate">Super Admin</span>
+                            <span className="text-[9px] text-green-600 font-mono mt-1">{ADMIN_VERSION}</span>
                         </div>
                     </div>
                 </div>
@@ -1846,11 +2122,33 @@ export const AdminDashboard: React.FC = () => {
                             <HeaderAction icon={Icons.Bell} badgeCount={getBadgeCount('requests')} />
                             <HeaderAction icon={Icons.MessageSquare} />
                             <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1 md:mx-2 hidden sm:block" />
-                            <button className="p-1 rounded-full hover:ring-2 hover:ring-red-500/20 transition-all">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-red-600 to-rose-400 flex items-center justify-center text-white font-bold text-xs shadow-lg">
-                                    {adminUser?.name?.charAt(0) || 'A'}
+                            <div className="relative group">
+                                <button className="p-1 rounded-full hover:ring-2 hover:ring-red-500/20 transition-all">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-red-600 to-rose-400 flex items-center justify-center text-white font-bold text-xs shadow-lg">
+                                        S
+                                    </div>
+                                </button>
+                                
+                                {/* Dropdown Menu */}
+                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right z-50">
+                                    <div className="p-2">
+                                        <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-700 mb-1">
+                                            <p className="text-xs font-bold text-slate-900 dark:text-white">Super Admin</p>
+                                            <p className="text-[10px] text-slate-500 truncate">{adminUser?.email}</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => {
+                                                backend.logout();
+                                                window.location.hash = '/';
+                                                window.location.reload();
+                                            }}
+                                            className="w-full text-left px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-2"
+                                        >
+                                            <Icons.LogOut className="w-3 h-3" /> Log Out
+                                        </button>
+                                    </div>
                                 </div>
-                            </button>
+                            </div>
                         </div>
                     </div>
                 </header>
@@ -1987,6 +2285,7 @@ export const AdminDashboard: React.FC = () => {
                                             <FilterTab active={filterRole === 'ALL'} onClick={() => setFilterRole('ALL')} label="All Users" />
                                             <FilterTab active={filterRole === 'DRIVER'} onClick={() => setFilterRole('DRIVER')} label="Drivers" />
                                             <FilterTab active={filterRole === 'CLIENT'} onClick={() => setFilterRole('CLIENT')} label="Clients" />
+                                            <FilterTab active={filterRole === 'AGENCY'} onClick={() => setFilterRole('AGENCY')} label="Partners" />
                                         </div>
                                     </div>
 
@@ -2030,14 +2329,30 @@ export const AdminDashboard: React.FC = () => {
                                                                 </td>
                                                                 <td className="px-8 py-5 text-slate-500 font-medium">{u.email || 'No Email'}</td>
                                                                 <td className="px-8 py-5">
-                                                                    <span className="px-3 py-1 bg-slate-100 dark:bg-slate-700 rounded-full text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-tighter border border-slate-200 dark:border-slate-600">
+                                                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${
+                                                                        u.role === UserRole.AGENCY 
+                                                                            ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800' 
+                                                                        : u.role === UserRole.DRIVER 
+                                                                            ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
+                                                                        : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600'
+                                                                    }`}>
                                                                         {u.role || 'GUEST'}
                                                                     </span>
                                                                 </td>
                                                                 <td className="px-8 py-5"><StatusBadge status={u.status} /></td>
                                                                 <td className="px-8 py-5 text-slate-400 font-medium">{new Date(u.joinDate || Date.now()).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</td>
-                                                                <td className="px-8 py-5 text-right">
-                                                                    <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center ml-auto transition-all">
+                                                                <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
+                                                                    <button 
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setUserToDelete(u);
+                                                                        }}
+                                                                        className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 hover:text-red-700 flex items-center justify-center transition-all"
+                                                                        title="Delete User"
+                                                                    >
+                                                                        <Icons.Trash className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center transition-all">
                                                                         <Icons.ChevronRight className="w-5 h-5" />
                                                                     </button>
                                                                 </td>
@@ -2051,6 +2366,13 @@ export const AdminDashboard: React.FC = () => {
                                 </div>
                             )}
 
+                            {activeTab === 'partners' && (
+                                <div className="space-y-8">
+                                    <PageHeader title="Partners" icon={Icons.Briefcase} onBack={() => setIsSidebarOpen(true)} />
+                                    <PartnersView />
+                                </div>
+                            )}
+                            
                             {activeTab === 'pricing' && pricingConfig && (
                                 <div className="space-y-8">
                                     <PageHeader title="Trip Fares" icon={Icons.DollarSign} onBack={() => setActiveTab('dashboard')} />
@@ -2389,6 +2711,21 @@ export const AdminDashboard: React.FC = () => {
             )}
             {selectedJob && (
                 <TripDetailsModal job={selectedJob} onClose={() => setSelectedJob(null)} onUpdate={fetchData} users={users} adminUser={adminUser} />
+            )}
+            
+            {userToDelete && (
+                <ConfirmationModal
+                    title={`Delete User: ${userToDelete.name}?`}
+                    message="Are you sure you want to permanently delete this user? This action cannot be undone and will remove all associated data."
+                    confirmText="Yes, Delete User"
+                    cancelText="Cancel"
+                    onConfirm={async () => {
+                         await backend.deleteUser(userToDelete.id);
+                         fetchData();
+                         setUserToDelete(null);
+                    }}
+                    onCancel={() => setUserToDelete(null)}
+                />
             )}
             
             {showResetModal && (

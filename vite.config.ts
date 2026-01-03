@@ -12,31 +12,31 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [
         react(),
-        VitePWA({
-          registerType: 'autoUpdate',
-          includeAssets: ['favicon.png', 'apple-touch-icon.png', 'mask-icon.svg'],
-          manifest: {
-            name: 'Tripfers Clone',
-            short_name: 'Tripfers',
-            description: 'Tripfers Clone Application',
-            theme_color: '#ffffff',
-            background_color: '#ffffff',
-            display: 'standalone',
-            start_url: '.',
-            icons: [
-              {
-                src: 'favicon.png',
-                sizes: '192x192',
-                type: 'image/png'
-              },
-              {
-                src: 'favicon.png',
-                sizes: '512x512',
-                type: 'image/png'
-              }
-            ]
-          }
-        })
+        // VitePWA({
+        //   registerType: 'autoUpdate',
+        //   includeAssets: ['favicon.png', 'apple-touch-icon.png', 'mask-icon.svg'],
+        //   manifest: {
+        //     name: 'Tripfers Clone',
+        //     short_name: 'Tripfers',
+        //     description: 'Tripfers Clone Application',
+        //     theme_color: '#ffffff',
+        //     background_color: '#ffffff',
+        //     display: 'standalone',
+        //     start_url: '.',
+        //     icons: [
+        //       {
+        //         src: 'favicon.png',
+        //         sizes: '192x192',
+        //         type: 'image/png'
+        //       },
+        //       {
+        //         src: 'favicon.png',
+        //         sizes: '512x512',
+        //         type: 'image/png'
+        //       }
+        //     ]
+        //   }
+        // })
       ],
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),

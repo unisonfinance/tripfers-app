@@ -14,7 +14,8 @@ export enum UserRole {
   ADMIN = 'ADMIN', // Super Admin
   ADMIN_SUPPORT = 'ADMIN_SUPPORT',
   ADMIN_FINANCE = 'ADMIN_FINANCE',
-  GUEST = 'GUEST'
+  GUEST = 'GUEST',
+  AGENCY = 'AGENCY' // B2B Partner
 }
 
 export enum JobStatus {
@@ -111,6 +112,14 @@ export interface DriverDocument {
   uploadedAt: string;
 }
 
+export interface AgencySettings {
+  apiKey: string;
+  webhookUrl?: string;
+  whiteLabelLogo?: string;
+  commissionRate: number; // e.g., 0.05 for 5%
+  companyName: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -131,6 +140,9 @@ export interface User {
   company?: CompanyProfile;
   paypalEmail?: string;
   paymentVerificationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'NONE';
+
+  // Agency specific
+  agencySettings?: AgencySettings;
 
   // Updated Documents Structure
   documents?: DriverDocument[];
@@ -160,6 +172,7 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
   isSystem?: boolean; // For "Driver Arrived" messages etc.
+  reactions?: Record<string, string[]>; // emoji -> array of userIds
 }
 
 export interface Coordinates {
@@ -230,34 +243,21 @@ export interface DriverFilter {
 }
 
 export interface IntegrationsConfig {
-  // Admin Info
-  primaryAdminEmail: string;
+    googleMapsKey: string;
+    googleGeminiKey?: string;
+    flightAwareKey?: string;
+    primaryAdminEmail: string;
+    
+    // Stripe
+    stripePublishableKey: string;
+    stripeSecretKey: string;
 
-  // Service Keys
-  googleMapsKey: string;
-  googleGeminiKey: string; // Added Gemini
-  flightAwareKey: string; // Aero API Key
-  
-  // Stripe
-  stripePublishableKey: string;
-  stripeSecretKey: string;
-  
-  // Twilio
-  adminMobileNumber: string;
-  twilioAccountSid: string;
-  twilioAuthToken: string;
-  twilioMessagingServiceSid: string;
-  twilioFromNumber: string;
-  twilioEnabled: boolean; // Toggle
-  
-  // URL
-  publicUrl: string;
-  
-  // Legacy / Other
-  stripeKey?: string; // deprecated
-  stripePublishedKey?: string; // deprecated
-  firebaseKey?: string;
-  twilioSid?: string; // deprecated
+    // Twilio
+    twilioAccountSid: string;
+    twilioAuthToken: string;
+    twilioFromNumber: string;
+    adminMobileNumber: string;
+    twilioEnabled: boolean;
 }
 
 export interface AdminBadgeSettings {
@@ -378,6 +378,8 @@ export interface BrandingSettings {
   loginFormImageUrl: string;
   mainSiteLogoUrl?: string; // Main Site Logo BB URL (for Light Theme)
   mainSiteLogoDarkUrl?: string; // Main Site Logo WB URL (for Dark Theme)
+  partnerFaviconUrl?: string; // Partner Portal Favicon URL
+  partnerLogoUrl?: string; // Partner Portal Logo URL
   logoHeight?: number; // Added for logo size control
   logoMarginLeft?: number;
   logoMarginTop?: number;
